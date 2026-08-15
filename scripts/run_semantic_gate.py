@@ -66,7 +66,7 @@ def main() -> int:
     model_ids = [item["id"] for item in models.get("data", [])]
 
     probes = {
-        "arithmetic": complete(base, "Compute 19 times 23. End your answer with the integer result.", 192),
+        "arithmetic": complete(base, "Compute 19 times 23. End your answer with the integer result.", 1024),
         "exact_string": complete(base, "Reply with exactly this text and nothing else: GB10_NATIVE_OK", 32),
         "word_problem": complete(base, "Six boxes contain nine bolts each. How many bolts are there? End with the integer result.", 128),
         "code": complete(base, "Write a Python function named add that returns the sum of arguments a and b. Return only the function definition.", 128),
