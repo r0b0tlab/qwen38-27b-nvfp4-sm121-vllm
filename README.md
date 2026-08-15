@@ -1,58 +1,50 @@
-# Qwen3.8-27B NVFP4 on GB10 / SM121 (DGX Spark) — vLLM
+# Qwen3.8-27B NVFP4 on NVIDIA DGX Spark (GB10 / SM121)
 
-[![status](https://img.shields.io/badge/status-CAMPAIGN__IN__PREPARATION-orange)]()
-[![engine](https://img.shields.io/badge/vLLM-0.27.1-blue)]()
+Reproducibility package for serving Qwen3.8-27B (self-quantized native NVFP4,
+ModelOpt 0.46.0rc1 mixed W4A4) on a single NVIDIA DGX Spark (GB10, SM121)
+with vLLM.
 
-Reproducible serving + qualification package for **Qwen3.8-27B** (Qwen3.5-family hybrid
-Gated-DeltaNet/Gated-Attention dense VLM, 262,144 native context) on a single
-NVIDIA GB10 (SM121, aarch64, 128GB unified memory), node of a DGX Spark cluster.
+## Headline profile
 
-> STATUS: campaign in preparation (2026-08-14). Release identity, image digests, and all
-> metric fields below are placeholders until the admission gates pass. Nothing here is a
-> measured claim yet.
+- Runtime: vLLM v0.27.1 (stable) / v0.27.2rc0 (source-built SM121 wheel)
+- Quantization: ModelOpt mixed — 193 NVFP4 (W4A4, block-16 e4m3) + 208 FP8
+  layers + BF16 passthrough; lm_head NVFP4 g16
+- Native kernels: FlashInferCutlassNvFp4LinearKernel (linear),
+  FlashInferFP8ScaledMM (FP8 attention projections), Triton/FLA GDN prefill
+- KV cache: BF16 (`--kv-cache-dtype auto`). FP8 KV produces a deterministic
+  arithmetic defect on this family (see Known issues).
+- Eager mode (SM121), VLLM_HOST_IP=127.0.0.1, gpu-mem-util 0.70
+- MTP speculative decoding: 15-tensor BF16 MTP head merged from source
+  (mirrors official Qwen3.6-27B-NVFP4 contract), method `mtp`
 
-## What this will contain
+## Reproduce
 
-- `scripts/serve.sh` — containerized vLLM launcher with GB10 containment rules
-- `scripts/audit_runtime.py` — fail-closed runtime audit (SM121 capability, CUDA 13,
-  Qwen3_5 family modules, ModelOpt NVFP4 loader, no-fallback env)
-- `scripts/run_semantic_gate.py` — deterministic semantic ladder (arithmetic, exact-string,
-  word problem, code, determinism repeats)
-- `scripts/run_long_generation.py` — sustained long generation gate
-- `scripts/run_max_context_gate.py` — atomic full-context NIAH ladder: tokenize-verified
-  depths 65,536 → 262,144, five needle positions, dual-code ordered retrieval,
-  forced-512 continuation
-- `results/` — raw evidence JSON per gate (added as gates pass)
-- Reproducibility instructions with exact digests (added at publication)
+```bash
+# 1. quantize (ModelOpt 0.46.0rc1, official 512-row calib, local_hessian)
+bash scripts/run-ptq.sh          # see configs/qwen38_27b_nvfp4_w4a4_fp8_attn_kv.yaml
+# 2. merge the BF16 MTP head from the BF16 source
+python3 scripts/merge_mtp_head.py
+# 3. serve
+MODEL_DIR=~/qwen38-ops/candidates/attempt18-mixedhess-official512-mtp \
+  KV_DTYPE=auto bash scripts/serve.sh [image]
+# 4. gates
+python3 scripts/run_semantic_gate.py --base-url http://<node>:8000 --output semantic.json
+python3 scripts/run_sanity_suite.py --base-url http://<node>:8000 --output sanity.json
+python3 scripts/run_quality_set.py --base-url http://<node>:8000 --run-id <id> --set ../artifacts/quality-200.jsonl
+python3 scripts/score_flex_gsm8k.py <id>.rows.jsonl ../artifacts/-quality-200.jsonl
+```
 
-## Model (pre-release facts)
+## Results
 
-| Field | Value |
-|---|---|
-| Architecture | Qwen3.5-family hybrid: 64 layers, per 16-block 3× Gated DeltaNet + 1× Gated Attention |
-| Params | 27B dense (text) + vision encoder |
-| Context | 262,144 native (YaRN extensible to 1M) |
-| Vocab | 248,320 padded |
-| MTP | trained (multi-token prediction) |
-| Thinking | default on; `enable_thinking` / `preserve_thinking` / `reasoning_effort` kwargs |
+See `results/` and `evidence-summary/` (populated at publication).
 
-## Engine identity (verified pre-release)
+## Known issues
 
-- Image: `vllm/vllm-openai:v0.27.1`
-- Registry: `Qwen3_5ForConditionalGeneration`, `Qwen3_5MTP` present (live-verified)
-- transformers 5.15.0 parses `rope_parameters` / `mrope_interleaved` (live-verified)
-- Runtime audit: PASS on SM121 (see above scripts; re-run in-container at qualification)
+- FP8 KV cache on vLLM 0.27.x + qwen3_5-family hybrid GDN models produces a
+  deterministic arithmetic defect (19×23 → "417"). BF16 KV is unaffected.
+  Upstream-report candidate; evidence in this repo.
 
-## SM121 constraints applied (from prior Qwen3.5/3.6-family campaigns)
+## License
 
-- FP8 KV cache production default (NVFP4 KV blocked on SM121)
-- No prefix caching for hybrid GDN models
-- No trtllm-gen NVFP4 attention on SM121 (no compatible cubins)
-- `VLLM_HOST_IP=127.0.0.1` (avoids NCCL link-local init storms)
-- `--enforce-eager` initially (SM121 codegen fragility, vllm#37431); relaxed only with evidence
-- GPU memory utilization capped + hard container memory ceiling
-
-## Credits
-
-Qwen3.8-27B by the Qwen team (Alibaba). Serving via vLLM. FlashInfer kernels.
-Benchmark harnesses adapted from the r0b0tlab SM121 campaign series.
+MIT for scripts/docs. Model weights follow the upstream Qwen license; weights
+are not redistributed in this repo.
