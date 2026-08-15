@@ -4,13 +4,20 @@
 # Usage: SPEC_K= MAX_MODEL_LEN= bash serve.sh [image]
 set -uo pipefail
 
-IMAGE="${1:-vllm/vllm-openai:v0.27.1}"
+IMAGE="${1:-vllm/vllm-openai:v0.27.1}"  # latest stable as of 2026-08-15 (v0.27.2 does not exist)
+shift 2>/dev/null || true  # drop the image arg so "$@" only carries vllm flags
 MODEL_DIR="${MODEL_DIR:-$HOME/models/llm/nvfp4/qwen/Qwen3.8-27B-NVFP4}"  # placeholder until identity lands
 NAME="${NAME:-qwen38-27b}"
 PORT="${PORT:-8000}"
 MAX_MODEL_LEN="${MAX_MODEL_LEN:-32768}"     # staged up after first admission
 GPU_UTIL="${GPU_UTIL:-0.70}"
-KV_DTYPE="${KV_DTYPE:-fp8}"
+KV_DTYPE="${KV_DTYPE:-auto}"   # auto = BF16 KV. FP8 KV is DISABLED by default here:
+                               # on v0.27.x + qwen3_5/3.8 hybrid GDN, fp8 KV produced a
+                               # deterministic arithmetic defect (19x23 -> "417" instead of
+                               # 437; semantic-gate fail). BF16 KV passes the gate cleanly
+                               # and matches how the campaign floors were measured.
+                               # Evidence: evidence/serve-attempt18/semantic-gate-v0271.json
+                               # (fp8 KV, fail) vs semantic-gate-bf16kv.json (pass).
 SPEC_K="${SPEC_K:-}"                        # empty = base-AR first (canonical); MTP only after AR qualifies
 VLLM_HOST_IP="${VLLM_HOST_IP:-127.0.0.1}"   # NCCL fe80 lesson
 ENFORCE_EAGER="${ENFORCE_EAGER:-1}"         # SM121 codegen fragility; relax only with evidence
@@ -43,8 +50,12 @@ docker run -d \
   --max-model-len "$MAX_MODEL_LEN" \
   --gpu-memory-utilization "$GPU_UTIL" \
   --kv-cache-dtype "$KV_DTYPE" \
-  --reasoning-parser qwen3 \
   --trust-remote-code \
   "${SPEC_ARG[@]}" "${EAGER_ARG[@]}" "$@" >/dev/null
+# NOTE: NO --reasoning-parser qwen3 — qwen3_5/3.8 family has no <think> special
+# tokens (verified: vocab ids are unk); v0.27 ReasoningConfig tokenize-validation
+# fails on empty strings. Thinking control is chat-template kwargs
+# (enable_thinking) only; floors (BF16 baseline, official-Q36 control) were
+# measured without a reasoning parser.
 echo "launched $NAME (image=$IMAGE len=$MAX_MODEL_LEN spec_k=${SPEC_K:-none} eager=$ENFORCE_EAGER)"
 echo "logs: docker logs -f $NAME"

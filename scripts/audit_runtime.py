@@ -58,11 +58,13 @@ def main() -> int:
             continue
     rows.append(check("modelopt_nvfp4_loader", modelopt_ok, modelopt_detail))
 
-    # Env sanity: no emulation/marlin escape hatches set
+    # Env sanity: no emulation escape hatches set.
+    # NOTE 2026-08-15: Marlin has an SM121 native path — presence of Marlin
+    # kernels is NOT an automatic fail gate per user direction. Emulation
+    # markers (e.g. CUTLASS grouped-GEMM E8M0 emulation) remain fail gates.
     forbidden_env = [
         k for k in os.environ
-        if "MARLIN" in k.upper()
-        or ("FALLBACK" in k.upper() and "DISABLE" not in k.upper())
+        if ("FALLBACK" in k.upper() and "DISABLE" not in k.upper())
     ]
     rows.append(check("no_forbidden_env", not forbidden_env, ",".join(forbidden_env)))
 
