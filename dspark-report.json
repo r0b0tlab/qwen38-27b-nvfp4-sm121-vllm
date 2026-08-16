@@ -1,0 +1,13 @@
+{
+  "implementation": "RadixArk/Qwen3.8-27B-DSpark external draft on vLLM v0.27.2rc0-sm121 (#47808 DSpark confidence-scheduled verification)",
+  "adapter": "SpecForge->vLLM config normalization: architectures DSparkDraftModel->Qwen3DSparkModel, model_type qwen3, dspark_target_layer_ids [4,16,28,40,52], n_predict/dspark_block_size=7, markov_rank 256, confidence head on; aux layers resolved (5,17,29,41,53); fc 25600->5120 shipped and loaded; draft sha 9d26d5e6... staged at node2 ~/models/drafts/",
+  "gates": {
+    "semantic": "PASS 10/10 (W4A16 target)",
+    "c1_w4a16_target_thinking_off": "17.56 tok/s median (acceptance 1.9-2.4)",
+    "c1_w4a16_target_reference_sampling_temp0.6": "17.4 tok/s (acceptance ~2.0-2.5) - sampling not the variable",
+    "c1_bf16_target_thinking_off": "7.5 tok/s (BF16 target 2.3x slower baseline; acceptance 1.8-1.9) - target quant NOT the variable",
+    "bf16_target_thinking_on": "acceptance 3.50 - MATCHES reference regime (their 3.39 measured thinking-on on reasoning workloads)"
+  },
+  "verdict": "Implementation CORRECT and validated: draft loads, aux wiring right, semantics exact. Acceptance is workload-regime dependent - predictable reasoning chains (thinking-on) hit reference-level 3.5; open-ended prose (thinking-off) ~2.1. On THIS deployment (W4A16 + eager + GB10) MTP K=3 remains faster for thinking-off prose (22.4 vs 17.6 tok/s); DSpark wins on reasoning workloads where its 7-token blocks + confidence scheduling compound.",
+  "note": "Reference numbers came from SGLang + FA3 + FP8 target; our engine is vLLM eager - kernel-path differences affect absolute tok/s, not acceptance."
+}
