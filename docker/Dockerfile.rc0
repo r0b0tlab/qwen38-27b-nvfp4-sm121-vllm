@@ -1,0 +1,21 @@
+# vLLM v0.27.2rc0 SM121 (GB10) — published claim runtime
+#
+# Layer the source-built v0.27.2rc0 wheel (tag 7f7a32cfec0f1bc5b73c37200b86631523a1ea8f)
+# onto the official v0.27.1 image. This is the image that produced 27.8 tok/s MTP.
+# Stock nightly without the SM121 FP4 GEMM tune falls back to tactic=-1 (~20 tok/s).
+#
+# Build on aarch64:
+#   docker build -f docker/Dockerfile.rc0 \
+#     --build-arg WHEEL=vllm-0.27.2rc0-cp312-cp312-linux_aarch64.whl \
+#     -t ghcr.io/r0b0tlab/qwen38-27b-nvfp4-sm121:v0.27.2rc0-sm121 .
+FROM vllm/vllm-openai:v0.27.1
+
+ARG WHEEL
+COPY ${WHEEL} /tmp/wheel/vllm-0.27.2rc0-cp312-cp312-linux_aarch64.whl
+
+RUN set -eux; \
+    WHEELFILE="/tmp/wheel/$(ls /tmp/wheel | head -1)"; \
+    pip install --no-deps --force-reinstall "$WHEELFILE"; \
+    rm -rf /tmp/wheel; \
+    python3 -c "import vllm; assert vllm.__version__, 'no version'; print('vllm', vllm.__version__)"; \
+    python3 -c "from vllm.model_executor.models.qwen3_5_mtp import Qwen3_5MTP; print('qwen3_5_mtp import OK')"
