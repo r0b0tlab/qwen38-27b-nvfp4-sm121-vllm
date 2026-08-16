@@ -1,0 +1,113 @@
+{
+  "model_ids": [
+    "qwen38-27b"
+  ],
+  "profile": "native W4A4 linear + B12X MoE + FP8 KV + MTP K=2",
+  "probes": {
+    "arithmetic": {
+      "prompt": "Compute 19 times 23. End your answer with the integer result.",
+      "status": 200,
+      "elapsed_seconds": 32.742838327001664,
+      "text": "To compute $19 \\times 23$, we can use the standard multiplication algorithm or break it down using the distributive property.\n\n**Method 1: Standard Multiplication**\n\n$$\n\\begin{array}{r}\n  23 \\\\\n\\times 19 \\\\\n\\hline\n 207 & (9 \\times 23) \\\\\n230 & (10 \\times 23) \\\\\n\\hline\n437\n\\end{array}\n$$\n\n**Method 2: Distributive Property**\n\nWe can rewrite 19 as $20 - 1$:\n$$\n19 \\times 23 = (20 - 1) \\times 23\n$$\n$$\n= (20 \\times 23) - (1 \\times 23)\n$$\n$$\n= 460 - 23\n$$\n$$\n= 437\n$$\n\nAlternatively, we can rewrite 23 as $20 + 3$:\n$$\n19 \\times 23 = 19 \\times (20 + 3)\n$$\n$$\n= (19 \\times 20) + (19 \\times 3)\n$$\n$$\n= 380 + 57\n$$\n$$\n= 437\n$$\n\nThe result is 437.\n\n437",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 29,
+        "total_tokens": 342,
+        "completion_tokens": 313,
+        "prompt_tokens_details": null
+      }
+    },
+    "exact_string": {
+      "prompt": "Reply with exactly this text and nothing else: GB10_NATIVE_OK",
+      "status": 200,
+      "elapsed_seconds": 0.7045690809973166,
+      "text": "GB10_NATIVE_OK",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 26,
+        "total_tokens": 32,
+        "completion_tokens": 6,
+        "prompt_tokens_details": null
+      }
+    },
+    "word_problem": {
+      "prompt": "Six boxes contain nine bolts each. How many bolts are there? End with the integer result.",
+      "status": 200,
+      "elapsed_seconds": 7.163146915998368,
+      "text": "To find the total number of bolts, we multiply the number of boxes by the number of bolts in each box.\n\n1.  **Number of boxes**: 6\n2.  **Bolts per box**: 9\n3.  **Calculation**: $6 \\times 9 = 54$\n\nThere are 54 bolts in total.\n\n54",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 31,
+        "total_tokens": 110,
+        "completion_tokens": 79,
+        "prompt_tokens_details": null
+      }
+    },
+    "code": {
+      "prompt": "Write a Python function named add that returns the sum of arguments a and b. Return only the function definition.",
+      "status": 200,
+      "elapsed_seconds": 1.752267263000249,
+      "text": "```python\ndef add(a, b):\n    return a + b\n```",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 34,
+        "total_tokens": 52,
+        "completion_tokens": 18,
+        "prompt_tokens_details": null
+      }
+    }
+  },
+  "repeats": [
+    {
+      "prompt": "Reply with exactly this text and nothing else: DETERMINISTIC_NATIVE",
+      "status": 200,
+      "elapsed_seconds": 0.6405855160046485,
+      "text": "DETERMINISTIC_NATIVE",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 26,
+        "total_tokens": 32,
+        "completion_tokens": 6,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "prompt": "Reply with exactly this text and nothing else: DETERMINISTIC_NATIVE",
+      "status": 200,
+      "elapsed_seconds": 0.6396750319981948,
+      "text": "DETERMINISTIC_NATIVE",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 26,
+        "total_tokens": 32,
+        "completion_tokens": 6,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "prompt": "Reply with exactly this text and nothing else: DETERMINISTIC_NATIVE",
+      "status": 200,
+      "elapsed_seconds": 0.6403948750012205,
+      "text": "DETERMINISTIC_NATIVE",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 26,
+        "total_tokens": 32,
+        "completion_tokens": 6,
+        "prompt_tokens_details": null
+      }
+    }
+  ],
+  "checks": {
+    "model_exact": true,
+    "arithmetic_437": true,
+    "exact_string": true,
+    "word_problem_54": true,
+    "code_shape": true,
+    "repeat_deterministic": true,
+    "repeat_exact": true,
+    "all_http_200": true,
+    "no_empty_loop_or_template_leakage": true
+  },
+  "passed": true
+}
