@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT="$HOME/projects/qwen38-27b-nvfp4-sm121-vllm"
 WHEELS="$HOME/vllm-wheels"
 IMAGE_TAG="vllm/vllm-openai:v0.27.2rc0-sm121"
-NODE2="${NODE2:-r0b0tdgx@192.168.0.2}"  # set your own host
+NODE2="${NODE2:?set NODE2 to the GPU host, e.g. user@gpu-host}"
 
 WHEEL=$(ls -t "$WHEELS"/vllm-0.27.2rc0*.whl 2>/dev/null | head -1)
 [ -n "$WHEEL" ] || { echo "NO_WHEEL: build not finished"; exit 2; }

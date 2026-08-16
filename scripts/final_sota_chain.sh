@@ -3,7 +3,7 @@
 # Idempotent; run from head. Assumes candidates/final-sota-nvidia-recipe exists and q38-ptq is done.
 set -uo pipefail
 ROOT="$HOME/projects/qwen38-27b-nvfp4-sm121-vllm"
-NODE2="${NODE2:-r0b0tdgx@192.168.0.2}"  # set your own host
+NODE2="${NODE2:?set NODE2 to the GPU host, e.g. user@gpu-host}"
 CAND=final-sota-nvidia-recipe
 EV="$ROOT/evidence/serve-$CAND"
 mkdir -p "$EV"

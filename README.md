@@ -1,127 +1,167 @@
 # Qwen3.8-27B NVFP4 on NVIDIA DGX Spark (GB10 / SM121)
 
-Reproducibility package for serving Qwen3.8-27B (self-quantized native NVFP4,
-ModelOpt 0.46.0rc1 mixed W4A4) on a single NVIDIA DGX Spark (GB10, SM121)
-with vLLM.
+Click-run package for serving the published NVFP4+MTP checkpoint on a single
+DGX Spark. Weights live on Hugging Face. This repo is scripts, profiles, and
+the exact serve flags that produced the numbers below.
 
-## Headline profile
+## What you need
 
-- Runtime: vLLM v0.27.1 (stable) / v0.27.2rc0 (source-built SM121 wheel)
-- Quantization: ModelOpt mixed — 193 NVFP4 (W4A4, block-16 e4m3) + 208 FP8
-  layers + BF16 passthrough; lm_head NVFP4 g16
-- Native kernels: FlashInferCutlassNvFp4LinearKernel (linear),
-  FlashInferFP8ScaledMM (FP8 attention projections), Triton/FLA GDN prefill
-- KV cache: FP8 (`--kv-cache-dtype fp8`). The checkpoint ships
-  `kv_cache_quant_algo: "FP8"` — REQUIRED for correct fp8 KV (see Known issues).
-- Eager mode (SM121), VLLM_HOST_IP=127.0.0.1, gpu-mem-util 0.70
-- MTP speculative decoding: 15-tensor BF16 MTP head merged from source
-  (mirrors official Qwen3.6-27B-NVFP4 contract), method `mtp`
+| Piece | Where |
+|---|---|
+| Checkpoint (all **four** shards) | [`r0b0tlab/Qwen3.8-27B-NVFP4-MTP-sm121`](https://huggingface.co/r0b0tlab/Qwen3.8-27B-NVFP4-MTP-sm121) |
+| Runtime image | `ghcr.io/r0b0tlab/qwen38-27b-nvfp4-sm121:v0.27.2rc0-sm121` |
+| Optional DSpark draft | [`RadixArk/Qwen3.8-27B-DSpark`](https://huggingface.co/RadixArk/Qwen3.8-27B-DSpark) + `scripts/adapt_dspark_draft.py` |
 
-## Serving profiles
+If your HF tree only has `model-00004-of-00004.safetensors`, it is incomplete.
+That was a publication bug (hardlinked body shards were omitted). Re-pull
+until all four files below exist and match `final-sota-shards.sha256`.
 
-All four profiles measured; pick by workload:
-
-| Profile | Flags (beyond base serve) | Best for | c1 / c8 |
-|---|---|---|---|
-| **Production MTP K=3** | `--speculative-config '{"method":"mtp","num_speculative_tokens":3}'` + tool flags | throughput ≥c8, tool calls | 27.8 / **84.3** |
-| **DSpark K=7** | mount RadixArk draft at /draft + `{"method":"dspark","model":"/draft","num_speculative_tokens":7}` | latency c1-c4, reasoning | **28.5** (best 30.4) / 61.5 |
-| **Long context 262,144** | `--max-model-len 262144 --gpu-memory-utilization 0.85 --max-num-batched-tokens 8192`, no spec | NIAH-verified retrieval (8/8) | 2.5M-token KV |
-| **AR floor** | no spec flag | baseline | 11.35 |
-
-Base serve (all profiles): `--kv-cache-dtype fp8 --enforce-eager
---no-enable-prefix-caching --trust-remote-code`; production adds
-`--enable-auto-tool-choice --tool-call-parser qwen3_xml`.
-
-## Reproduce
-
-```bash
-# 1. quantize (ModelOpt 0.46.0rc1, official 512-row calib, local_hessian)
-bash scripts/run-ptq.sh          # see configs/qwen38_27b_nvfp4_w4a4_fp8_attn_kv.yaml
-# 2. merge the BF16 MTP head from the BF16 source
-python3 scripts/merge_mtp_head.py
-# 3. serve
-MODEL_DIR=~/qwen38-ops/candidates/attempt18-mixedhess-official512-mtp \
-  KV_DTYPE=fp8 bash scripts/serve.sh [image]
-# 4. gates
-python3 scripts/run_semantic_gate.py --base-url http://<node>:8000 --output semantic.json
-python3 scripts/run_sanity_suite.py --base-url http://<node>:8000 --output sanity.json
-python3 scripts/run_quality_set.py --base-url http://<node>:8000 --run-id <id> --set ../artifacts/quality-200.jsonl
-python3 scripts/score_flex_gsm8k.py <id>.rows.jsonl ../artifacts/-quality-200.jsonl
+```
+4208cd3b…  model-00001-of-00004.safetensors   (~9.3 GiB)
+024111b9…  model-00002-of-00004.safetensors   (~9.3 GiB)
+927ee343…  model-00003-of-00004.safetensors   (~1.1 GiB)
+47202b11…  model-00004-of-00004.safetensors   (~0.8 GiB, BF16 MTP head)
 ```
 
-## Speculative decoding: two validated speculators (same checkpoint)
+Do **not** point the server at a sibling NVFP4 tree and then mount only shard 4.
+That changes the kernel path and is not this release.
 
-Both were measured on the identical checkpoint/harness/hardware (17/17 runs, zero errors):
+## Fastest path (MTP, the published production profile)
 
-| Level | MTP K=3 (in-checkpoint head) | DSpark K=7 (RadixArk external draft) | winner |
+```bash
+huggingface-cli download r0b0tlab/Qwen3.8-27B-NVFP4-MTP-sm121 \
+  --local-dir ~/models/r0b0tlab/Qwen3.8-27B-NVFP4-MTP-sm121
+sha256sum -c final-sota-shards.sha256
+
+docker pull ghcr.io/r0b0tlab/qwen38-27b-nvfp4-sm121:v0.27.2rc0-sm121
+
+MODEL_DIR=~/models/r0b0tlab/Qwen3.8-27B-NVFP4-MTP-sm121 \
+  bash scripts/serve.sh mtp
+
+# wait until /health is 200, then:
+python3 scripts/run_semantic_gate.py \
+  --base-url http://127.0.0.1:8000 \
+  --output /tmp/qwen38-semantic.json
+```
+
+The canary that must pass is `19 × 23 → 437`. If you get `417`, the checkpoint
+is missing `kv_cache_quant_algo: "FP8"` or you dropped `--kv-cache-dtype fp8`.
+
+One-liner that downloads, launches MTP, and runs the canary:
+
+```bash
+bash scripts/click_run_mtp.sh
+```
+
+## Why stock `vllm-nightly` is ~27% slower
+
+These numbers were taken on the **source-built SM121 wheel**
+`v0.27.2rc0-sm121` (`7f7a32c`, image `sha256:3dd1f94e…`), not on an
+untuned nightly. On stock nightly you will typically see:
+
+```
+[AutoTuner] No tuned config covers fp4_gemm ... falling back tactic=-1
+```
+
+That fallback is the gap. Independent reproduction on stock nightly of
+**AR 11.30 vs our 11.35** and **MTP 20.4 (1.80×)** vs our **27.8 (2.45×)**
+is the expected shape: the base model matches, the spec path does not,
+because the published image carries the SM121 FP4 GEMM tune.
+
+| Stack | AR c1 | MTP K=3 dedicated c1 | notes |
 |---|---:|---:|---|
-| Dedicated c1 (2048 tok) | 27.83 tok/s | **28.46 tok/s** (best 30.43) | DSpark |
-| c1 (256 tok) | **19.22 tok/s** | 16.05 tok/s | MTP |
-| c2 | 26.86 tok/s | **28.47 tok/s** | DSpark |
-| c4 | 34.61 tok/s | **43.88 tok/s** (+27%) | DSpark |
-| c8 | **82.89 tok/s** | 61.53 tok/s | MTP |
+| This image (`v0.27.2rc0-sm121`) | 11.35 | **27.8–28.1** | published claim |
+| Stock nightly / untuned fp4_gemm | ~11.3 | ~20.4 | independent repro, expected |
 
-- **MTP K=3**: use for throughput serving (≥c8) and short decodes. In-checkpoint BF16
-  head, `--speculative-config '{"method":"mtp","num_speculative_tokens":3}'`.
-- **DSpark K=7**: use for latency-sensitive c1-c4 and reasoning workloads (mean
-  acceptance 3.5 with thinking on — matches the RadixArk reference regime).
-  Requires the external draft (RadixArk/Qwen3.8-27B-DSpark) with the config
-  normalization described in `dspark-report.json`:
-  `--speculative-config '{"method":"dspark","model":"/path/to/draft","num_speculative_tokens":7}'`.
-  Draft trained against Qwen/Qwen3.8-27B-FP8; validated correct on both BF16 and
-  this W4A16 target (semantic 10/10 both).
+Use the GHCR image. Do not expect the 2.45× number from an untuned nightly.
 
-## Results — pre/post quantization (single DGX Spark, thinking off, temp 0)
+## Profiles
 
-Same 200-item set, same flex-extract scorer, every run on this hardware:
+`scripts/serve.sh` accepts one argument. Every profile keeps
+`--kv-cache-dtype fp8 --enforce-eager --no-enable-prefix-caching`.
 
-| Run | Quant | GSM8K exact | GSM8K numeric-norm | HumanEval | IFEval | Agentic |
-|---|---|---|---|---|---|---|
-| BF16 baseline (pre-quant floor) | — | 86.2% | 96.2% | 39/40 | 37/40 | 16/20 |
-| official nvidia/Qwen3.6-27B-NVFP4 (family control) | W4A16 | 86.2% | 93.8% | 39/40 | 38/40 | 18/20 |
-| attempt15 (early self-quant) | W4A16 | 78.8% | 88.8% | 39/40 | 38/40 | 18/20 |
-| attempt18 (W4A4 local_hessian, v0.27.1) | W4A4 | 81.2% | 90.0% | 39/40 | 38/40 | 18/20 |
-| attempt18 (W4A4, rc0 engine) | W4A4 | 82.5% | 92.5% | 38/40 | 37/40 | 18/20 |
-| **final-sota (shipped recipe, BF16 KV)** | W4A16 | 81.25% | 91.25% | 38/40 | 38/40 | 18/20 |
-| **final-sota (shipped recipe, FP8 KV) ← RELEASE** | W4A16 | 81.25% | 91.25% | 39/40 | 37/40 | 17/20 |
+| Profile | Extra flags | Use |
+|---|---|---|
+| `mtp` (default) | MTP K=3 + `qwen3_xml` tools | production / ≥c8 throughput |
+| `ar` | no spec | baseline |
+| `dspark` | external draft, K=7 | c1–c4 latency / thinking-on |
+| `long` | `--max-model-len 262144 --gpu-memory-utilization 0.85 --max-num-batched-tokens 8192` | NIAH / 262K |
 
-Notes: 5 of the release run's 8 GSM8K exact-fails are decimal-format artifacts
-("26.00" vs "26") — hence the numeric-normalized column. Engine A/B
-(v0.27.1 vs rc0) and KV A/B (BF16 vs FP8) are quality-neutral on the final
-checkpoint. Full per-run rows: `*.rows.jsonl` referenced in the campaign log.
+```bash
+MODEL_DIR=~/models/r0b0tlab/Qwen3.8-27B-NVFP4-MTP-sm121 bash scripts/serve.sh ar
+MODEL_DIR=... bash scripts/serve.sh mtp
+DRAFT_DIR=~/models/r0b0tlab/Qwen3.8-27B-DSpark-adapted MODEL_DIR=... bash scripts/serve.sh dspark
+MODEL_DIR=... bash scripts/serve.sh long
+```
 
-### Serving gates on the release profile (MTP K*=3 + FP8 KV)
+## DSpark that actually returns tokens
 
-| Gate | Result |
-|---|---|
-| Semantic 10-check | PASS (AR / K2 / K3 / fp8-KV) |
-| Sanity suite | 8/8 (qwen3_xml tool-calls, 2.8K long-gen, deterministic) |
-| MTP ladder | AR 11.35 → K2 21.67 → **K3 22.36 tok/s** (1.97×; acceptance 2.5-2.7) |
-| Dedicated c1 (2048 tok) | 27.8-28.1 tok/s median (2.45-2.48× AR) |
-| Concurrency ladder | c1 19.2 / c2 32.0 / c4 44.6 / c8 84.3 tok/s — 17/17 zero-error |
-| NIAH @ 262,144 | 8/8 PASS (5 positions @ ~247.7K actual + 8K/32K/131K ladder) |
+DSpark on this engine is **not** the stock RadixArk / SpecForge tree and it
+is **not** SGLang. The working path is vLLM `method=dspark` after rewriting
+the draft config to the `Qwen3DSparkModel` contract (PR #47808).
 
-## Known issues
+```bash
+huggingface-cli download RadixArk/Qwen3.8-27B-DSpark \
+  --local-dir ~/models/RadixArk/Qwen3.8-27B-DSpark
 
-- FP8 KV arithmetic defect — ROOT-CAUSED AND FIXED. A ModelOpt export with
-  `kv_cache_quant_algo: None` served with the runtime fp8 flag takes a broken
-  generic path (deterministic 19×23 → "417"). The checkpoint flag `"FP8"`
-  routes KV through `ModelOptKVCacheMethod` and is exact — this checkpoint
-  ships the flag; serve with `--kv-cache-dtype fp8`. BF16 KV
-  (`--kv-cache-dtype auto`) also works and is quality-neutral but halves KV
-  capacity. Upstream-report candidate; evidence in this repo.
+python3 scripts/adapt_dspark_draft.py \
+  --src ~/models/RadixArk/Qwen3.8-27B-DSpark \
+  --out ~/models/r0b0tlab/Qwen3.8-27B-DSpark-adapted
+
+DRAFT_DIR=~/models/r0b0tlab/Qwen3.8-27B-DSpark-adapted \
+MODEL_DIR=~/models/r0b0tlab/Qwen3.8-27B-NVFP4-MTP-sm121 \
+  bash scripts/serve.sh dspark
+```
+
+What the adapter changes (weights untouched):
+
+- `architectures`: `DSparkDraftModel` → `Qwen3DSparkModel`
+- `model_type`: `dspark` → `qwen3`
+- `dspark_target_layer_ids`: `[4, 16, 28, 40, 52]`
+- `n_predict` / `dspark_block_size`: `7`
+- `dflash_config.projector_type`: `dspark`
+
+A raw SpecForge draft on this image hangs after FlashInfer autotune
+(`dspark_worker_v2.py`). That hang is the unadapted config, not a missing
+backend. If `/health` is up but a 20-token request never returns, check
+`docker logs` for the draft architecture string — it must be `Qwen3DSparkModel`.
+
+DSpark numbers on **this** image / eager / W4A16 target:
+
+| Level | MTP K=3 | DSpark K=7 |
+|---|---:|---:|
+| Dedicated c1 (2048) | 27.83 | **28.46** (best 30.43) |
+| c1 256 | **19.22** | 16.05 |
+| c4 | 34.61 | **43.88** |
+| c8 | **82.89** | 61.53 |
+| thinking-on accept length | — | 3.5 |
+
+## Quant / serve facts that matter
+
+- Recipe: ModelOpt 0.46.0rc1 shipped `qwen3_5` map — 193 W4A16_NVFP4 + 208 FP8 + 257 BF16 + 15 BF16 MTP tensors.
+- Serve **must** keep `--kv-cache-dtype fp8`. The checkpoint ships `kv_cache_quant_algo: "FP8"`. Flag-less + runtime fp8 = `19×23 → 417`.
+- No prefix cache on this hybrid GDN family.
+- No `--reasoning-parser qwen3` (this family has no `<think>` special tokens). Use `chat_template_kwargs={"enable_thinking": false}`.
+- Quality on this harness, thinking off, temp 0: GSM8K flex 81.25% / numeric-norm 91.25%; HumanEval 39/40; IFEval 37/40; NIAH 8/8 @ 262,144.
+
+## Build the runtime yourself (optional)
+
+Only needed if you do not pull GHCR.
+
+```bash
+# inside docker/ on an aarch64 CUDA 13 host
+# 1) build the v0.27.2rc0 wheel at 7f7a32c with TORCH_CUDA_ARCH_LIST=12.0 MAX_JOBS=4
+# 2) layer it:
+docker build -f docker/Dockerfile.rc0 \
+  --build-arg WHEEL=vllm-0.27.2rc0-cp312-cp312-linux_aarch64.whl \
+  -t ghcr.io/r0b0tlab/qwen38-27b-nvfp4-sm121:v0.27.2rc0-sm121 .
+```
+
+`docker/Dockerfile.rc0` is in this repo. The published image is the claim
+runtime; a self-built wheel is only equivalent if it is the same source SHA
+and the same SM121 arch list.
 
 ## License
 
-MIT for scripts/docs. Model weights follow the upstream Qwen license; weights
-are not redistributed in this repo.
-
-## Final checkpoint (2026-08-16)
-
-`final-sota-nvidia-recipe` — NVIDIA shipped qwen3_5 recipe verbatim
-(`w4a16_nvfp4-fp8_attn-kv_fp8_cast`): 193 W4A16_NVFP4 (MLP+lm_head, g16) +
-208 FP8 attn/GDN + 257 BF16, `max` algorithm, ModelOpt 0.46.0rc1, calibration
-= documented combo (cnn_dailymail + Nemotron-Post-Training-Dataset-v2) scaled
-to 2048 packed rows @1024 via get_dataset_dataloader (pack, left-pad).
-Shard SHAs in `final-sota-shards.sha256`. Served on vLLM v0.27.2rc0-sm121,
-FP8 KV (checkpoint `kv_cache_quant_algo=FP8` flag; see Known issues), eager.
+MIT for scripts/docs. Weights follow the upstream Qwen license and are not
+stored in this git tree.

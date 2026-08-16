@@ -61,10 +61,29 @@ this campaign; upstream-report candidate.
 | Dedicated c1 (2048 tok) | 27.8-28.1 tok/s median (2.45-2.48× AR) |
 | c8 aggregate | 84.3 tok/s best, 17/17 zero-error |
 
+## Files (complete 4-of-4 tree)
+
+This repo must contain **all four** shards. A tree with only
+`model-00004-of-00004.safetensors` (the MTP head) is incomplete and will
+not reproduce the published numbers.
+
+```
+model-00001-of-00004.safetensors   4208cd3b…   ~9.3 GiB
+model-00002-of-00004.safetensors   024111b9…   ~9.3 GiB
+model-00003-of-00004.safetensors   927ee343…   ~1.1 GiB
+model-00004-of-00004.safetensors   47202b11…   ~0.8 GiB  (BF16 MTP head)
+```
+
+Do not mix these shards with a sibling NVFP4 checkpoint.
+
 ## Serve
 
+Use the published SM121 image. Stock `vllm-nightly` typically hits
+`[AutoTuner] No tuned config covers fp4_gemm ... tactic=-1` and lands
+around 20 tok/s MTP instead of 27.8.
+
 ```bash
-docker run --runtime nvidia -e NVIDIA_VISIBLE_DEVICES=0 -p 8000:8000 \
+docker run --gpus all -p 8000:8000 \
   -v /path/to/this/checkpoint:/model:ro \
   ghcr.io/r0b0tlab/qwen38-27b-nvfp4-sm121:v0.27.2rc0-sm121 \
   --model /model --served-model-name qwen38-27b \
@@ -74,8 +93,17 @@ docker run --runtime nvidia -e NVIDIA_VISIBLE_DEVICES=0 -p 8000:8000 \
   --speculative-config '{"method":"mtp","num_speculative_tokens":3}'
 ```
 
+Canary: `19 × 23` must answer `437`. `417` means the FP8-KV flag path is
+broken.
+
 For 262K-context serving: `--max-model-len 262144 --gpu-memory-utilization 0.85
 --max-num-batched-tokens 8192` (KV capacity ≈ 2.5M tokens with fp8 KV).
+
+DSpark (optional, vLLM only — not SGLang): adapt
+`RadixArk/Qwen3.8-27B-DSpark` with
+`scripts/adapt_dspark_draft.py` from the repro repo, then
+`--speculative-config '{"method":"dspark","model":"/draft","num_speculative_tokens":7}'`.
+A raw SpecForge draft deadlocks after FlashInfer autotune on this engine.
 
 ## Provenance
 

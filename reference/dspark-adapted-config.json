@@ -1,0 +1,33 @@
+{
+  "architectures": [
+    "Qwen3DSparkModel"
+  ],
+  "model_type": "qwen3",
+  "dspark_target_layer_ids": [4, 16, 28, 40, 52],
+  "n_predict": 7,
+  "dspark_block_size": 7,
+  "block_size": 7,
+  "markov_rank": 256,
+  "markov_head_type": "vanilla",
+  "enable_confidence_head": true,
+  "confidence_head_with_markov": true,
+  "rope_parameters": {
+    "beta_fast": 32.0,
+    "beta_slow": 1.0,
+    "factor": 32.0,
+    "original_max_position_embeddings": 8192,
+    "rope_theta": 10000000,
+    "rope_type": "yarn"
+  },
+  "dflash_config": {
+    "attention_mode": "gqa",
+    "confidence_head_alpha": 1.0,
+    "confidence_head_with_markov": true,
+    "enable_confidence_head": true,
+    "markov_head_type": "vanilla",
+    "markov_rank": 256,
+    "mask_token_id": 248077,
+    "projector_type": "dspark",
+    "target_layer_ids": [4, 16, 28, 40, 52]
+  }
+}

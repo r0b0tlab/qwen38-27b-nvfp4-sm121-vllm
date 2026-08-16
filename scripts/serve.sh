@@ -1,37 +1,96 @@
 #!/usr/bin/env bash
-# Qwen3.8-27B serve launcher — single GB10 node2, SM121. SCAFFOLD v0.
-# Adapted from puzzle-75b serve.sh containment + qwen36-27B release contract.
-# Usage: SPEC_K= MAX_MODEL_LEN= bash serve.sh [image]
-set -uo pipefail
+# Click-run launcher for the published Qwen3.8-27B NVFP4 SM121 profiles.
+# Usage:
+#   IMAGE=ghcr.io/r0b0tlab/qwen38-27b-nvfp4-sm121:v0.27.2rc0-sm121 \
+#   MODEL_DIR=/path/to/Qwen3.8-27B-NVFP4-MTP-sm121 \
+#   bash scripts/serve.sh mtp
+#   bash scripts/serve.sh ar
+#   DRAFT_DIR=/path/to/Qwen3.8-27B-DSpark-adapted bash scripts/serve.sh dspark
+#   bash scripts/serve.sh long
+set -euo pipefail
 
-IMAGE="${1:-vllm/vllm-openai:v0.27.1}"  # latest stable as of 2026-08-15 (v0.27.2 does not exist)
-shift 2>/dev/null || true  # drop the image arg so "$@" only carries vllm flags
-MODEL_DIR="${MODEL_DIR:-$HOME/models/llm/nvfp4/qwen/Qwen3.8-27B-NVFP4}"  # placeholder until identity lands
+PROFILE="${1:-mtp}"
+IMAGE="${IMAGE:-ghcr.io/r0b0tlab/qwen38-27b-nvfp4-sm121:v0.27.2rc0-sm121}"
+MODEL_DIR="${MODEL_DIR:-$HOME/models/r0b0tlab/Qwen3.8-27B-NVFP4-MTP-sm121}"
+DRAFT_DIR="${DRAFT_DIR:-$HOME/models/r0b0tlab/Qwen3.8-27B-DSpark-adapted}"
 NAME="${NAME:-qwen38-27b}"
 PORT="${PORT:-8000}"
-MAX_MODEL_LEN="${MAX_MODEL_LEN:-32768}"     # staged up after first admission
-GPU_UTIL="${GPU_UTIL:-0.70}"
-KV_DTYPE="${KV_DTYPE:-fp8}"    # fp8 is the production path. REQUIRES the checkpoint
-                               # flag kv_cache_quant_algo="FP8" (this campaign's export has it).
-                               # Without that flag, the runtime fp8 option takes a broken
-                               # generic path (deterministic 19x23 -> "417"); with the flag,
-                               # KV routes through ModelOptKVCacheMethod and is exact.
-                               # "auto" (BF16 KV) is the fallback and is quality-neutral
-                               # but halves KV capacity.
-SPEC_K="${SPEC_K:-}"                        # empty = base-AR first (canonical); MTP only after AR qualifies
-VLLM_HOST_IP="${VLLM_HOST_IP:-127.0.0.1}"   # NCCL fe80 lesson
-ENFORCE_EAGER="${ENFORCE_EAGER:-1}"         # SM121 codegen fragility; relax only with evidence
+VLLM_HOST_IP="${VLLM_HOST_IP:-127.0.0.1}"
 DOCKER_CPUS="${DOCKER_CPUS:-14}"
 DOCKER_MEM="${DOCKER_MEM:-112g}"
 
-SPEC_ARG=()
-if [ -n "$SPEC_K" ]; then
-  SPEC_ARG=(--speculative-config "{\"method\":\"mtp\",\"num_speculative_tokens\":${SPEC_K}}")
+if [ ! -d "$MODEL_DIR" ]; then
+  echo "MODEL_DIR missing: $MODEL_DIR" >&2
+  exit 2
 fi
-EAGER_ARG=()
-if [ "$ENFORCE_EAGER" = "1" ]; then
-  EAGER_ARG=(--enforce-eager)
-fi
+for shard in model-00001-of-00004.safetensors model-00002-of-00004.safetensors model-00003-of-00004.safetensors model-00004-of-00004.safetensors; do
+  if [ ! -f "$MODEL_DIR/$shard" ]; then
+    echo "incomplete checkpoint: missing $MODEL_DIR/$shard" >&2
+    echo "The published HF tree must contain all four 4-of-4 shards. Re-pull r0b0tlab/Qwen3.8-27B-NVFP4-MTP-sm121." >&2
+    exit 3
+  fi
+done
+
+COMMON=(
+  --model /model
+  --served-model-name qwen38-27b
+  --trust-remote-code
+  --kv-cache-dtype fp8
+  --enforce-eager
+  --no-enable-prefix-caching
+)
+
+case "$PROFILE" in
+  ar)
+    EXTRA=(--max-model-len 32768 --gpu-memory-utilization 0.70)
+    VOLS=(-v "$MODEL_DIR:/model:ro")
+    ;;
+  mtp)
+    EXTRA=(
+      --max-model-len 32768
+      --gpu-memory-utilization 0.70
+      --enable-auto-tool-choice
+      --tool-call-parser qwen3_xml
+      --speculative-config '{"method":"mtp","num_speculative_tokens":3}'
+    )
+    VOLS=(-v "$MODEL_DIR:/model:ro")
+    ;;
+  dspark)
+    if [ ! -f "$DRAFT_DIR/config.json" ]; then
+      echo "DRAFT_DIR missing adapted draft: $DRAFT_DIR" >&2
+      echo "Download RadixArk/Qwen3.8-27B-DSpark and run scripts/adapt_dspark_draft.py first." >&2
+      exit 4
+    fi
+    if ! python3 - "$DRAFT_DIR/config.json" <<'PY'
+import json,sys
+cfg=json.load(open(sys.argv[1]))
+ok = cfg.get("architectures")==["Qwen3DSparkModel"] and cfg.get("model_type")=="qwen3"
+raise SystemExit(0 if ok else 1)
+PY
+    then
+      echo "draft config is still SpecForge-shaped; run scripts/adapt_dspark_draft.py" >&2
+      exit 5
+    fi
+    EXTRA=(
+      --max-model-len 32768
+      --gpu-memory-utilization 0.70
+      --speculative-config '{"method":"dspark","model":"/draft","num_speculative_tokens":7}'
+    )
+    VOLS=(-v "$MODEL_DIR:/model:ro" -v "$DRAFT_DIR:/draft:ro")
+    ;;
+  long)
+    EXTRA=(
+      --max-model-len 262144
+      --gpu-memory-utilization 0.85
+      --max-num-batched-tokens 8192
+    )
+    VOLS=(-v "$MODEL_DIR:/model:ro")
+    ;;
+  *)
+    echo "unknown profile: $PROFILE (ar|mtp|dspark|long)" >&2
+    exit 6
+    ;;
+esac
 
 docker rm -f "$NAME" >/dev/null 2>&1 || true
 docker run -d \
@@ -43,19 +102,11 @@ docker run -d \
   -p "$PORT:8000" \
   -e VLLM_HOST_IP="$VLLM_HOST_IP" \
   -e HF_HUB_OFFLINE=1 \
-  -v "$MODEL_DIR:/model:ro" \
+  "${VOLS[@]}" \
   "$IMAGE" \
-  --model /model \
-  --served-model-name qwen38-27b \
-  --max-model-len "$MAX_MODEL_LEN" \
-  --gpu-memory-utilization "$GPU_UTIL" \
-  --kv-cache-dtype "$KV_DTYPE" \
-  --trust-remote-code \
-  "${SPEC_ARG[@]}" "${EAGER_ARG[@]}" "$@" >/dev/null
-# NOTE: NO --reasoning-parser qwen3 — qwen3_5/3.8 family has no <think> special
-# tokens (verified: vocab ids are unk); v0.27 ReasoningConfig tokenize-validation
-# fails on empty strings. Thinking control is chat-template kwargs
-# (enable_thinking) only; floors (BF16 baseline, official-Q36 control) were
-# measured without a reasoning parser.
-echo "launched $NAME (image=$IMAGE len=$MAX_MODEL_LEN spec_k=${SPEC_K:-none} eager=$ENFORCE_EAGER)"
+  "${COMMON[@]}" \
+  "${EXTRA[@]}"
+echo "launched $NAME profile=$PROFILE image=$IMAGE port=$PORT"
 echo "logs: docker logs -f $NAME"
+echo "ready probe: curl -fsS http://127.0.0.1:$PORT/health"
+echo "canary: python3 scripts/run_semantic_gate.py --base-url http://127.0.0.1:$PORT --output /tmp/qwen38-semantic.json"

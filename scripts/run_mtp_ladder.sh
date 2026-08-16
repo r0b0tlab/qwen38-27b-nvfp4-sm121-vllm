@@ -8,7 +8,7 @@ IMAGE="${1:?image required}"
 TAG="${2:-mtp-ladder}"
 KLIST="${KLIST:-2 3}"
 ROOT=/home/r0b0tdgx/projects/qwen38-27b-nvfp4-sm121-vllm
-NODE2="${NODE2:-r0b0tdgx@192.168.0.2}"  # set your own host
+NODE2="${NODE2:?set NODE2 to the GPU host, e.g. user@gpu-host}"
 MODEL_DIR='$HOME/qwen38-ops/candidates/attempt18-mixedhess-official512-mtp'
 mkdir -p "$ROOT/evidence/mtp-ladder"
 
