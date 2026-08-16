@@ -1,0 +1,30 @@
+{
+  "profile": "final-sota + DSpark K=7 + fp8 KV (RadixArk draft, adapted)",
+  "comparison_vs_mtp_k3": {
+    "dedicated-c1": {
+      "mtp_k3": 27.83,
+      "dspark_k7": 28.46
+    },
+    "c1-": {
+      "mtp_k3": 19.22,
+      "dspark_k7": 16.05
+    },
+    "c2-": {
+      "mtp_k3": 26.86,
+      "dspark_k7": 28.47
+    },
+    "c4-": {
+      "mtp_k3": 34.61,
+      "dspark_k7": 43.88
+    },
+    "c8-": {
+      "mtp_k3": 82.89,
+      "dspark_k7": 61.53
+    }
+  },
+  "ar_baseline_c1": 11.35,
+  "dspark_speedup_vs_ar_c1": 2.51,
+  "best_rep_c1": 30.43,
+  "zero_errors": true,
+  "runs": 17
+}
