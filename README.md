@@ -34,6 +34,28 @@ python3 scripts/run_quality_set.py --base-url http://<node>:8000 --run-id <id> -
 python3 scripts/score_flex_gsm8k.py <id>.rows.jsonl ../artifacts/-quality-200.jsonl
 ```
 
+## Speculative decoding: two validated speculators (same checkpoint)
+
+Both were measured on the identical checkpoint/harness/hardware (17/17 runs, zero errors):
+
+| Level | MTP K=3 (in-checkpoint head) | DSpark K=7 (RadixArk external draft) | winner |
+|---|---:|---:|---|
+| Dedicated c1 (2048 tok) | 27.83 tok/s | **28.46 tok/s** (best 30.43) | DSpark |
+| c1 (256 tok) | **19.22 tok/s** | 16.05 tok/s | MTP |
+| c2 | 26.86 tok/s | **28.47 tok/s** | DSpark |
+| c4 | 34.61 tok/s | **43.88 tok/s** (+27%) | DSpark |
+| c8 | **82.89 tok/s** | 61.53 tok/s | MTP |
+
+- **MTP K=3**: use for throughput serving (≥c8) and short decodes. In-checkpoint BF16
+  head, `--speculative-config '{"method":"mtp","num_speculative_tokens":3}'`.
+- **DSpark K=7**: use for latency-sensitive c1-c4 and reasoning workloads (mean
+  acceptance 3.5 with thinking on — matches the RadixArk reference regime).
+  Requires the external draft (RadixArk/Qwen3.8-27B-DSpark) with the config
+  normalization described in `dspark-report.json`:
+  `--speculative-config '{"method":"dspark","model":"/path/to/draft","num_speculative_tokens":7}'`.
+  Draft trained against Qwen/Qwen3.8-27B-FP8; validated correct on both BF16 and
+  this W4A16 target (semantic 10/10 both).
+
 ## Results — pre/post quantization (single DGX Spark, thinking off, temp 0)
 
 Same 200-item set, same flex-extract scorer, every run on this hardware:
