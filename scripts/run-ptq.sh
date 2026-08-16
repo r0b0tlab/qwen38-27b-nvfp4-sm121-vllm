@@ -35,7 +35,7 @@ docker run -d \
   -e PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
   -e PYTHONUNBUFFERED=1 \
   -e TOKENIZERS_PARALLELISM=false \
-  -e Q38_SRC=/src -e Q38_OUT=/candidates/$ATTEMPT -e Q38_ATTEMPT=/attempt -e Q38_PROFILE="${Q38_PROFILE:-mixed}" -e Q38_KV="${Q38_KV:-fp8}" -e Q38_CALIB="${Q38_CALIB:-0}" -e Q38_CALIB_FILE="${Q38_CALIB_FILE:-/calib/calibration.jsonl}" -e Q38_CALIB_ROWS="${Q38_CALIB_ROWS:-512}" \
+  -e Q38_SRC=/src -e Q38_OUT=/candidates/$ATTEMPT -e Q38_ATTEMPT=/attempt -e Q38_PROFILE="${Q38_PROFILE:-mixed}" -e Q38_KV="${Q38_KV:-fp8}" -e Q38_CALIB="${Q38_CALIB:-0}" -e Q38_CALIB_FILE="${Q38_CALIB_FILE:-/calib/calibration.jsonl}" -e Q38_CALIB_ROWS="${Q38_CALIB_ROWS:-512}" -e Q38_CALIB_MAXLEN="${Q38_CALIB_MAXLEN:-512}" \
   -v "$HOME/qwen38-ops/calibration:/calib:ro" \
   -v "$SRC:/src:ro" \
   -v "$ROOT/candidates:/candidates" \

@@ -189,8 +189,9 @@ if os.environ.get("Q38_CALIB", "0") == "1":
     tok = AutoTokenizer.from_pretrained(SRC, trust_remote_code=True)
     device = next(model.parameters()).device
     calib_batches = []
+    calib_maxlen = int(os.environ.get("Q38_CALIB_MAXLEN", "512"))
     for p in prompts:
-        enc = tok(p, return_tensors="pt", truncation=True, max_length=512)
+        enc = tok(p, return_tensors="pt", truncation=True, max_length=calib_maxlen)
         calib_batches.append({k: v.to(device) for k, v in enc.items()})
     fwd_loop = create_forward_loop(dataloader=calib_batches)
     log(f"calib loop ready: {calib_rows} batches (create_forward_loop)")
@@ -242,7 +243,8 @@ if fwd_loop is not None and needs_input_calib:
         log(f"clobber guard: {len(snap_before)} weight scales unchanged after max-calibrate")
 
 # --- 3c) Census (attempt18 contract: 193 NVFP4 + 208 FP8) ---
-exp_nvfp4 = int(os.environ.get("Q38_EXPECT_NVFP4", "193"))
+_default_nvfp4 = {"w4a16": 192, "mlp_only": 192, "no_lmhead_mixed": 192}.get(PROFILE, 193)
+exp_nvfp4 = int(os.environ.get("Q38_EXPECT_NVFP4", _default_nvfp4))
 exp_fp8 = int(os.environ.get("Q38_EXPECT_FP8", "208"))
 census = {"total_linears": 0, "nvfp4": 0, "fp8": 0, "bf16": 0}
 
