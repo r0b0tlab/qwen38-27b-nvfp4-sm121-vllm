@@ -11,13 +11,13 @@ NAME="${NAME:-qwen38-27b}"
 PORT="${PORT:-8000}"
 MAX_MODEL_LEN="${MAX_MODEL_LEN:-32768}"     # staged up after first admission
 GPU_UTIL="${GPU_UTIL:-0.70}"
-KV_DTYPE="${KV_DTYPE:-auto}"   # auto = BF16 KV. FP8 KV is DISABLED by default here:
-                               # on v0.27.x + qwen3_5/3.8 hybrid GDN, fp8 KV produced a
-                               # deterministic arithmetic defect (19x23 -> "417" instead of
-                               # 437; semantic-gate fail). BF16 KV passes the gate cleanly
-                               # and matches how the campaign floors were measured.
-                               # Evidence: evidence/serve-attempt18/semantic-gate-v0271.json
-                               # (fp8 KV, fail) vs semantic-gate-bf16kv.json (pass).
+KV_DTYPE="${KV_DTYPE:-fp8}"    # fp8 is the production path. REQUIRES the checkpoint
+                               # flag kv_cache_quant_algo="FP8" (this campaign's export has it).
+                               # Without that flag, the runtime fp8 option takes a broken
+                               # generic path (deterministic 19x23 -> "417"); with the flag,
+                               # KV routes through ModelOptKVCacheMethod and is exact.
+                               # "auto" (BF16 KV) is the fallback and is quality-neutral
+                               # but halves KV capacity.
 SPEC_K="${SPEC_K:-}"                        # empty = base-AR first (canonical); MTP only after AR qualifies
 VLLM_HOST_IP="${VLLM_HOST_IP:-127.0.0.1}"   # NCCL fe80 lesson
 ENFORCE_EAGER="${ENFORCE_EAGER:-1}"         # SM121 codegen fragility; relax only with evidence

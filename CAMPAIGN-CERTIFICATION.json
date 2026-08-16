@@ -16,12 +16,44 @@
   "gates": {
     "semantic_10_checks": "PASS (AR + K2 + K3 + fp8kv profiles)",
     "quality_200": {
-      "gsm8k_flex": "65/80 = 81.25%",
-      "gsm8k_numeric_norm": "~70/80 = 87.5%",
-      "humaneval": "39/40",
-      "ifeval": "37-38/40",
-      "agentic": "17-18/20",
-      "note": "5 of 8 gsm8k exact-fails are decimal-format artifacts (26.00 vs 26)"
+      "pre_quant_floor": {
+        "run": "bf16-baseline",
+        "gsm8k_flex": "69/80 = 86.2%",
+        "gsm8k_numeric": "77/80 = 96.2%",
+        "humaneval": "39/40",
+        "ifeval": "37/40",
+        "agentic": "16/20"
+      },
+      "family_control": {
+        "run": "official nvidia/Qwen3.6-27B-NVFP4",
+        "gsm8k_flex": "69/80 = 86.2%",
+        "gsm8k_numeric": "75/80 = 93.8%",
+        "humaneval": "39/40",
+        "ifeval": "38/40",
+        "agentic": "18/20"
+      },
+      "w4a4_exploration_best": {
+        "run": "nvfp4-attempt18-rc0-bf16kv",
+        "gsm8k_flex": "66/80 = 82.5%",
+        "gsm8k_numeric": "74/80 = 92.5%"
+      },
+      "release_bf16kv": {
+        "run": "final-sota",
+        "gsm8k_flex": "65/80 = 81.25%",
+        "gsm8k_numeric": "73/80 = 91.25%",
+        "humaneval": "38/40",
+        "ifeval": "38/40",
+        "agentic": "18/20"
+      },
+      "release_fp8kv_FINAL": {
+        "run": "final-sota-fp8kv",
+        "gsm8k_flex": "65/80 = 81.25%",
+        "gsm8k_numeric": "73/80 = 91.25%",
+        "humaneval": "39/40",
+        "ifeval": "37/40",
+        "agentic": "17/20"
+      },
+      "note": "5 of 8 release GSM8K exact-fails are decimal-format artifacts (26.00 vs 26); engine A/B and KV A/B quality-neutral on final checkpoint"
     },
     "sanity_suite": "PASS 8/8 (incl qwen3_xml tool-calling, 2.8K long-gen, deterministic)",
     "niah_262144": "PASS 8/8 (5 positions @ ~247.7K actual + ladder 8K/32K/131K; 512 gen past retrieval)",

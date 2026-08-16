@@ -51,8 +51,10 @@ this campaign; upstream-report candidate.
 | Gate | Result |
 |---|---|
 | Semantic (10 checks) | PASS (AR / MTP K2 / K3 / fp8-KV profiles) |
-| GSM8K flex (200-set) | 81.25% exact (≈87.5% numeric-normalized; 5 fails are "26.00"-style formatting) |
-| HumanEval / IFEval / agentic | 39/40 · 37-38/40 · 17-18/20 |
+| GSM8K flex (pre-quant BF16 floor) | 86.2% exact / 96.2% numeric-norm |
+| GSM8K flex (official family control) | 86.2% exact / 93.8% numeric-norm |
+| GSM8K flex (this checkpoint, FP8 KV) | 81.25% exact / 91.25% numeric-norm (5 of 8 fails are "26.00"-style formatting) |
+| HumanEval / IFEval / agentic | 39/40 · 37/40 · 17/20 (release run) |
 | Sanity suite | 8/8 incl. qwen3_xml tool-calls, 2.8K long-gen, determinism |
 | NIAH @ 262,144 ctx | 8/8 PASS (5 positions @ ~247.7K actual + 8K/32K/131K ladder) |
 | MTP (K*=3) | c1 22.4 tok/s vs AR 11.35 (1.97×); acceptance len 2.5-2.7 |
