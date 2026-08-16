@@ -1,0 +1,42 @@
+{
+  "checkpoint": "final-sota-nvidia-recipe-mtp (193 W4A16 NVFP4 + 208 FP8 + 257 BF16 + 15 BF16 MTP tensors)",
+  "engine": "vllm/vllm-openai:v0.27.2rc0-sm121 (sha256:3dd1f94e...)",
+  "kv": "fp8 (checkpoint kv_cache_quant_algo=FP8, the flag fix)",
+  "ar_c1_median_tok_s": 11.35,
+  "k2_c1_median_tok_s": 21.67,
+  "k3_c1_median_tok_s": 22.36,
+  "k2_acceptance": {
+    "mean_len": [
+      2.29,
+      2.48
+    ],
+    "draft_rate_pct": [
+      64.7,
+      73.9
+    ],
+    "per_position": [
+      0.83,
+      0.59
+    ]
+  },
+  "k3_acceptance": {
+    "mean_len": [
+      2.52,
+      2.69
+    ],
+    "draft_rate_pct": [
+      50.6,
+      56.5
+    ],
+    "per_position": [
+      0.81,
+      0.54,
+      0.34
+    ]
+  },
+  "verdict": "K*=3 frozen (+1.97x AR c1; K3 beats K2 by 3.2%)",
+  "semantic": {
+    "ar": "PASS 10/10",
+    "k2": "PASS 10/10"
+  }
+}
