@@ -1,0 +1,15 @@
+{
+  "profile": "final-sota + MTP K*=3 + fp8 KV (checkpoint flag fix)",
+  "dedicated_c1_median_tok_s": 27.83,
+  "dedicated_c1_best_tok_s": 28.15,
+  "ar_baseline_c1_tok_s": 11.35,
+  "speedup_vs_ar": 2.45,
+  "ladder_best": {
+    "c1": 19.24,
+    "c2": 32.0,
+    "c4": 44.55,
+    "c8": 84.28
+  },
+  "zero_errors": true,
+  "runs": 17
+}
