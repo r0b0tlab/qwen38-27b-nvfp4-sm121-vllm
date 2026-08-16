@@ -48,3 +48,13 @@ See `results/` and `evidence-summary/` (populated at publication).
 
 MIT for scripts/docs. Model weights follow the upstream Qwen license; weights
 are not redistributed in this repo.
+
+## Final checkpoint (2026-08-16)
+
+`final-sota-nvidia-recipe` — NVIDIA shipped qwen3_5 recipe verbatim
+(`w4a16_nvfp4-fp8_attn-kv_fp8_cast`): 193 W4A16_NVFP4 (MLP+lm_head, g16) +
+208 FP8 attn/GDN + 257 BF16, `max` algorithm, ModelOpt 0.46.0rc1, calibration
+= documented combo (cnn_dailymail + Nemotron-Post-Training-Dataset-v2) scaled
+to 2048 packed rows @1024 via get_dataset_dataloader (pack, left-pad).
+Shard SHAs in `final-sota-shards.sha256`. Served on vLLM v0.27.2rc0-sm121,
+BF16 KV (FP8 KV has a known arithmetic defect on this family), eager.
