@@ -1,0 +1,58 @@
+[
+  {
+    "depth": 0.5,
+    "prompt_tokens": 7726,
+    "pass": true,
+    "elapsed_s": 14.9,
+    "answer": "QWEN38-NIAH-9X4K"
+  },
+  {
+    "depth": 0.5,
+    "prompt_tokens": 31000,
+    "pass": true,
+    "elapsed_s": 37.1,
+    "answer": "QWEN38-NIAH-9X4K"
+  },
+  {
+    "depth": 0.5,
+    "prompt_tokens": 124132,
+    "pass": true,
+    "elapsed_s": 184.3,
+    "answer": "QWEN38-NIAH-9X4K"
+  },
+  {
+    "depth": 0.05,
+    "prompt_tokens": 247738,
+    "pass": true,
+    "elapsed_s": 473.5,
+    "answer": "QWEN38-NIAH-9X4K"
+  },
+  {
+    "depth": 0.25,
+    "prompt_tokens": 247739,
+    "pass": true,
+    "elapsed_s": 474.0,
+    "answer": "QWEN38-NIAH-9X4K"
+  },
+  {
+    "depth": 0.5,
+    "prompt_tokens": 247738,
+    "pass": true,
+    "elapsed_s": 473.5,
+    "answer": "QWEN38-NIAH-9X4K"
+  },
+  {
+    "depth": 0.75,
+    "prompt_tokens": 247739,
+    "pass": true,
+    "elapsed_s": 473.6,
+    "answer": "QWEN38-NIAH-9X4K"
+  },
+  {
+    "depth": 0.95,
+    "prompt_tokens": 247738,
+    "pass": true,
+    "elapsed_s": 473.5,
+    "answer": "QWEN38-NIAH-9X4K"
+  }
+]
