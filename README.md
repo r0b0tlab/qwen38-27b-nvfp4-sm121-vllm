@@ -11,8 +11,8 @@ with vLLM.
   layers + BF16 passthrough; lm_head NVFP4 g16
 - Native kernels: FlashInferCutlassNvFp4LinearKernel (linear),
   FlashInferFP8ScaledMM (FP8 attention projections), Triton/FLA GDN prefill
-- KV cache: BF16 (`--kv-cache-dtype auto`). FP8 KV produces a deterministic
-  arithmetic defect on this family (see Known issues).
+- KV cache: FP8 (`--kv-cache-dtype fp8`). The checkpoint ships
+  `kv_cache_quant_algo: "FP8"` — REQUIRED for correct fp8 KV (see Known issues).
 - Eager mode (SM121), VLLM_HOST_IP=127.0.0.1, gpu-mem-util 0.70
 - MTP speculative decoding: 15-tensor BF16 MTP head merged from source
   (mirrors official Qwen3.6-27B-NVFP4 contract), method `mtp`
