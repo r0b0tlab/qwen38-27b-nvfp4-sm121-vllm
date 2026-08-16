@@ -1,6 +1,5 @@
 {
   "tag": "final-k3-toolparse",
-  "base_url": "http://192.168.0.2:8000",
   "passed": 8,
   "total": 8,
   "all_ok": true,

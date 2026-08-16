@@ -7,6 +7,7 @@ code near the middle of the filler, and checks exact retrieval.
 from __future__ import annotations
 
 import argparse
+import os
 import hashlib
 import json
 import time
@@ -42,7 +43,7 @@ def post_chat(url: str, payload: dict, timeout: int = 7200) -> tuple[int, dict, 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--base-url", default="http://192.168.0.2:8000/v1")
+    ap.add_argument("--base-url", default=os.environ.get("Q38_BASE_URL", "http://127.0.0.1:8000/v1"))
     ap.add_argument("--model", default="qwen38-27b")
     ap.add_argument(
         "--tokenizer",

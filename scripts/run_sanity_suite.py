@@ -2,7 +2,7 @@
 """Short sanity suite: semantic ladder + thinking modes + tool-call smoke + long gen.
 
 Run against a live endpoint after engine/ckpt changes. Emits JSON verdict file.
-Usage: run_sanity_suite.py --base-url http://192.168.0.2:8000 --output <json> [--tag NAME]
+Usage: run_sanity_suite.py --base-url ${Q38_BASE_URL:-http://127.0.0.1:8000} --output <json> [--tag NAME]
 """
 from __future__ import annotations
 
