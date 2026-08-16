@@ -1,0 +1,59 @@
+{
+  "tag": "final-k3-toolparse",
+  "base_url": "http://192.168.0.2:8000",
+  "passed": 8,
+  "total": 8,
+  "all_ok": true,
+  "checks": [
+    {
+      "name": "arith_437_thinkoff",
+      "ok": true,
+      "detail": "437"
+    },
+    {
+      "name": "arith_437_thinkon",
+      "ok": true,
+      "detail": "\" Need final only integer. Compute 19*23 = 437. Ensure final only integer.\n\n\n437"
+    },
+    {
+      "name": "exact_string",
+      "ok": true,
+      "detail": "BANANA"
+    },
+    {
+      "name": "word_problem_80",
+      "ok": true,
+      "detail": "80"
+    },
+    {
+      "name": "code_shape",
+      "ok": true,
+      "detail": "```python\ndef fib(n):\n    if n < 0:\n        raise ValueError(\"n must be non-nega"
+    },
+    {
+      "name": "tool_call_get_weather",
+      "ok": true,
+      "detail": [
+        {
+          "id": "chatcmpl-tool-b458e2ec6cc43e88",
+          "type": "function",
+          "function": {
+            "name": "get_weather",
+            "arguments": "{\"city\": \"Tokyo\"}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "long_gen_2k",
+      "ok": true,
+      "detail": "completion_tokens=2822 finish=stop"
+    },
+    {
+      "name": "repeat_deterministic",
+      "ok": true,
+      "detail": "identical"
+    }
+  ],
+  "timestamp": "2026-08-16T09:06:47Z"
+}
