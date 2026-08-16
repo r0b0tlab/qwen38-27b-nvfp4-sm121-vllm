@@ -1,6 +1,6 @@
 {
   "checkpoint": "final-sota-nvidia-recipe-mtp (193 W4A16 NVFP4 + 208 FP8 + 257 BF16 + 15 BF16 MTP tensors)",
-  "engine": "vllm/vllm-openai:v0.27.2rc0-sm121 (sha256:3dd1f94e...)",
+  "engine": "ghcr.io/r0b0tlab/qwen38-27b-nvfp4-sm121:v0.27.2rc0-sm121 (digest sha256:5bd3f329..., config sha256:3dd1f94e...)",
   "kv": "fp8 (checkpoint kv_cache_quant_algo=FP8, the flag fix)",
   "ar_c1_median_tok_s": 11.35,
   "k2_c1_median_tok_s": 21.67,

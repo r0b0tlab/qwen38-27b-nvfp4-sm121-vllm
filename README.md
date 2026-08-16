@@ -56,8 +56,9 @@ bash scripts/click_run_mtp.sh
 ## Why stock `vllm-nightly` is ~27% slower
 
 These numbers were taken on the **source-built SM121 wheel**
-`v0.27.2rc0-sm121` (`7f7a32c`, image `sha256:3dd1f94e…`), not on an
-untuned nightly. On stock nightly you will typically see:
+`v0.27.2rc0-sm121` (`7f7a32c`, GHCR digest `sha256:5bd3f329…`,
+local config `sha256:3dd1f94e…`), not on an untuned nightly. On stock
+nightly you will typically see:
 
 ```
 [AutoTuner] No tuned config covers fp4_gemm ... falling back tactic=-1

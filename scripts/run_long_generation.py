@@ -24,7 +24,7 @@ def request(url: str, payload: dict) -> tuple[int, dict, float]:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--base-url", default="http://127.0.0.1:18080")
+    parser.add_argument("--base-url", default="http://127.0.0.1:8000")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
     model = "qwen38-27b"

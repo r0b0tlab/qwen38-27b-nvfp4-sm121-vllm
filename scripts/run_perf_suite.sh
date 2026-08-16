@@ -2,7 +2,7 @@
 # Throughput + concurrency suite for Qwen3.8-27B NVFP4 on node2 (vllm bench serve).
 # Dedicated c1 long-decode (median of 5) + concurrent ladder, one level at a time.
 set -euo pipefail
-ROOT="${ROOT:-/home/r0b0tdgx/projects/qwen38-27b-nvfp4-sm121-vllm}"
+ROOT="${ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 PORT="${PORT:-8000}"
 MODEL="${MODEL:-qwen38-27b}"
 CONTAINER="${CONTAINER:-qwen38-27b}"

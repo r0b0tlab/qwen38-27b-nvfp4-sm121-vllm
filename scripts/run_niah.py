@@ -47,7 +47,10 @@ def main() -> int:
     ap.add_argument("--model", default="qwen38-27b")
     ap.add_argument(
         "--tokenizer",
-        default="/home/r0b0tdgx/qwen38-ops/candidates/attempt18-mixedhess-official512",
+        default=os.environ.get(
+            "Q38_TOKENIZER",
+            os.path.expanduser("~/models/r0b0tlab/Qwen3.8-27B-NVFP4-MTP-sm121"),
+        ),
     )
     ap.add_argument("--depths", type=int, nargs="+", default=None,
                     help="Explicit prompt depths. Default: derive from served max context.")

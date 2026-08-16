@@ -73,7 +73,7 @@ def completion(base: str, prompt: str, max_tokens: int, min_tokens: int=0, ignor
 
 def main() -> int:
     ap=argparse.ArgumentParser()
-    ap.add_argument("--base-url",default="http://127.0.0.1:18080")
+    ap.add_argument("--base-url", default="http://127.0.0.1:8000")
     ap.add_argument("--max-depth",type=int,required=True)
     ap.add_argument("--output",required=True)
     ap.add_argument("--profile",choices=("ar","mtp2"),required=True)

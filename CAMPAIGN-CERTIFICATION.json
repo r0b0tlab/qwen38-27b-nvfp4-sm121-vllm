@@ -12,7 +12,7 @@
     ],
     "kv_flag": "kv_cache_quant_algo=FP8 (cast-mode; REQUIRED - None flag triggers vLLM arithmetic defect, root-caused this campaign)"
   },
-  "engine": "vLLM v0.27.2rc0-sm121 (source-built wheel sha 84fff6a5..., image sha256:3dd1f94e...), BF16 fallback-kv not needed",
+  "engine": "vLLM v0.27.2rc0-sm121 (source-built wheel; GHCR digest sha256:5bd3f329...; local config sha256:3dd1f94e...)",
   "gates": {
     "semantic_10_checks": "PASS (AR + K2 + K3 + fp8kv profiles)",
     "quality_200": {

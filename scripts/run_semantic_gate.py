@@ -58,7 +58,7 @@ def generic_ok(text: str) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--base-url", default="http://127.0.0.1:18080")
+    parser.add_argument("--base-url", default="http://127.0.0.1:8000")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
     base = args.base_url.rstrip("/")
@@ -86,7 +86,7 @@ def main() -> int:
     }
     result = {
         "model_ids": model_ids,
-        "profile": "native W4A4 linear + B12X MoE + FP8 KV + MTP K=2",
+        "profile": "W4A16 NVFP4 + FP8 KV + MTP K=3",
         "probes": probes,
         "repeats": repeats,
         "checks": checks,

@@ -3,9 +3,9 @@
 # Adapts the proven Aquila run_ptq.sh pattern to the qwen38-quant:v2 container.
 set -uo pipefail
 
-ROOT="$HOME/qwen38-ops"
-SRC="$HOME/models/llm/bf16/Qwen3.8-27B"
-IMAGE="qwen38-quant:v3-modelopt046rc1"
+ROOT="${Q38_OPS:-$HOME/qwen38-nvfp4-work}"
+SRC="${Q38_BF16_SRC:-$HOME/models/Qwen/Qwen3.8-27B}"
+IMAGE="${Q38_QUANT_IMAGE:-qwen38-quant:v3-modelopt046rc1}"
 ATTEMPT="${1:?attempt id required}"
 EVIDENCE="$ROOT/evidence/$ATTEMPT"
 EXPORT="$ROOT/candidates/$ATTEMPT"

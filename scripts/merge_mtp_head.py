@@ -4,8 +4,8 @@ NVFP4 checkpoint, mirroring the official Qwen3.6-27B-NVFP4 control contract
 (15 mtp.* tensors, BF16, absent from hf_quant_config).
 
 Usage: python3 merge_mtp_head.py
-Creates candidates/attempt18-mixedhess-official512-mtp: shards 1-3 hardlinked
-from attempt18, MTP tensors appended as shard 4, index rewritten to 4-of-4,
+Creates $Q38_MTP_DIR (default ~/qwen38-nvfp4-mtp): shards 1-3 hardlinked
+from $Q38_QUANT_DIR, MTP tensors appended as shard 4, index rewritten to 4-of-4,
 audit JSON + sha256 manifest written.
 """
 import hashlib
@@ -15,9 +15,9 @@ import shutil
 import struct
 import sys
 
-SRC = os.path.expanduser("~/models/llm/bf16/Qwen3.8-27B")
-BASE = os.path.expanduser("~/qwen38-ops/candidates/attempt18-mixedhess-official512")
-OUT = os.path.expanduser("~/qwen38-ops/candidates/attempt18-mixedhess-official512-mtp")
+SRC = os.path.expanduser(os.environ.get("Q38_BF16_SRC", "~/models/Qwen/Qwen3.8-27B"))
+BASE = os.path.expanduser(os.environ.get("Q38_QUANT_DIR", "~/qwen38-nvfp4"))
+OUT = os.path.expanduser(os.environ.get("Q38_MTP_DIR", "~/qwen38-nvfp4-mtp"))
 CHUNK = 1 << 24
 
 
