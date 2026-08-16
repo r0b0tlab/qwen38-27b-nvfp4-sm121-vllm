@@ -17,6 +17,7 @@ FORBIDDEN = (
     "ghp_",
 )
 REQUIRED = (
+    "LICENSE",
     "README.md",
     "HF-CARD.md",
     "final-sota-shards.sha256",
