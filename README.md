@@ -17,6 +17,21 @@ with vLLM.
 - MTP speculative decoding: 15-tensor BF16 MTP head merged from source
   (mirrors official Qwen3.6-27B-NVFP4 contract), method `mtp`
 
+## Serving profiles
+
+All four profiles measured; pick by workload:
+
+| Profile | Flags (beyond base serve) | Best for | c1 / c8 |
+|---|---|---|---|
+| **Production MTP K=3** | `--speculative-config '{"method":"mtp","num_speculative_tokens":3}'` + tool flags | throughput ≥c8, tool calls | 27.8 / **84.3** |
+| **DSpark K=7** | mount RadixArk draft at /draft + `{"method":"dspark","model":"/draft","num_speculative_tokens":7}` | latency c1-c4, reasoning | **28.5** (best 30.4) / 61.5 |
+| **Long context 262,144** | `--max-model-len 262144 --gpu-memory-utilization 0.85 --max-num-batched-tokens 8192`, no spec | NIAH-verified retrieval (8/8) | 2.5M-token KV |
+| **AR floor** | no spec flag | baseline | 11.35 |
+
+Base serve (all profiles): `--kv-cache-dtype fp8 --enforce-eager
+--no-enable-prefix-caching --trust-remote-code`; production adds
+`--enable-auto-tool-choice --tool-call-parser qwen3_xml`.
+
 ## Reproduce
 
 ```bash
