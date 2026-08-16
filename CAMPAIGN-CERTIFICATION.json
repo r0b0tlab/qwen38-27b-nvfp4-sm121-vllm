@@ -1,0 +1,44 @@
+{
+  "checkpoint": "final-sota-nvidia-recipe-mtp",
+  "identity": {
+    "quant": "193 W4A16_NVFP4 (MLP+lm_head g16) + 208 FP8 attn/GDN + 257 BF16 + 15 BF16 MTP head (shard4 sha 47202b11...)",
+    "producer": "modelopt 0.46.0rc1, method max, NVIDIA shipped qwen3_5 recipe",
+    "calibration": "cnn_dailymail + Nemotron-Post-Training-Dataset-v2 (stem/chat/math/code), 2048 packed rows @1024, get_dataset_dataloader pack+left-pad (documented path)",
+    "shards": [
+      "4208cd3b...",
+      "024111b9...",
+      "927ee343...",
+      "47202b11... (mtp)"
+    ],
+    "kv_flag": "kv_cache_quant_algo=FP8 (cast-mode; REQUIRED - None flag triggers vLLM arithmetic defect, root-caused this campaign)"
+  },
+  "engine": "vLLM v0.27.2rc0-sm121 (source-built wheel sha 84fff6a5..., image sha256:3dd1f94e...), BF16 fallback-kv not needed",
+  "gates": {
+    "semantic_10_checks": "PASS (AR + K2 + K3 + fp8kv profiles)",
+    "quality_200": {
+      "gsm8k_flex": "65/80 = 81.25%",
+      "gsm8k_numeric_norm": "~70/80 = 87.5%",
+      "humaneval": "39/40",
+      "ifeval": "37-38/40",
+      "agentic": "17-18/20",
+      "note": "5 of 8 gsm8k exact-fails are decimal-format artifacts (26.00 vs 26)"
+    },
+    "sanity_suite": "PASS 8/8 (incl qwen3_xml tool-calling, 2.8K long-gen, deterministic)",
+    "niah_262144": "PASS 8/8 (5 positions @ ~247.7K actual + ladder 8K/32K/131K; 512 gen past retrieval)",
+    "mtp_k_ladder": {
+      "AR": 11.35,
+      "K2": 21.67,
+      "K3": 22.36,
+      "frozen": "K*=3"
+    },
+    "perf": {
+      "dedicated_c1_median": "27.8-28.1 tok/s (2.45-2.48x AR)",
+      "c8_aggregate_best": "84.28 tok/s",
+      "zero_errors": "17/17 runs"
+    }
+  },
+  "novel_findings": [
+    "FP8-KV arithmetic defect root cause: ModelOpt export kv_cache_quant_algo=None + vLLM runtime fp8 flag = broken generic path (19x23->417); flag=FP8 routes ModelOptKVCacheMethod correctly. Upstream-report candidate.",
+    "W4A16 shipped recipe reproduces control census exactly (193/208/257); no official W4A4 recipe exists for qwen3_5 family - attempt18 W4A4 (81.25%) vs control-map W4A16 (81.25%) equivalent on this harness"
+  ]
+}
