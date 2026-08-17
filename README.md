@@ -147,6 +147,23 @@ Think-on matched `run_perf_suite.sh` (same 512→2048 / 1024→256 protocol,
 | vLLM DSpark K7 think-off | 28.46 | 16.05 / 28.47 / 43.88 / 61.53 |
 | vLLM DSpark K7 think-on | 28.65 | 16.13 / 28.63 / 44.63 / 62.23 |
 
+DSpark quality-200 (think-off, same `artifacts/quality-200.jsonl` sha256
+`ca35650e…`, client e2e tok/s = completion_tokens / wall):
+
+| Family | score | mean | median | top |
+|---|---|---:|---:|---:|
+| GSM8K flex / numeric | 66/80 = 82.5% · 74/80 = 92.5% | 33.2 | 32.7 | 41.3 (`gsm8k-010`) |
+| HumanEval | 39/40 | 51.3 | 52.0 | **57.5** (`humaneval-031`) |
+| IFEval | 37/40 | 15.5 | 14.3 | 32.9 (`ifeval-027`) |
+| Agentic | **19/20** | 37.7 | 37.9 | 44.8 (`agentic-08`) |
+| Hard reasoning | 20 written, not auto-graded | 29.6 | 29.5 | 39.2 (`hard-04`) |
+| All 200 | — | 33.4 | 32.9 | **57.5** |
+
+Token-weighted 29.0 tok/s (75.5k tokens / 43.4 min). File:
+`quality-200-vllm-dspark.json`. Matched SGLang DSpark scores on GSM8K /
+HumanEval / IFEval; SGLang is faster (mean 38.1, peak 66.8); vLLM DSpark
+wins agentic 19/20 vs 18/20.
+
 SGLang native path (same checkpoint, official cookbook image):
 [`r0b0tlab/qwen38-27b-nvfp4-sm121-sglang`](https://github.com/r0b0tlab/qwen38-27b-nvfp4-sm121-sglang).
 SGLang EAGLE think-off wins the concurrent ladder (c8 **123.90**). vLLM MTP
@@ -158,7 +175,7 @@ think-on wins dedicated c1 (**29.12**).
 - Serve **must** keep `--kv-cache-dtype fp8`. The checkpoint ships `kv_cache_quant_algo: "FP8"`. Flag-less + runtime fp8 = `19×23 → 417`.
 - No prefix cache on this hybrid GDN family.
 - No `--reasoning-parser qwen3` (this family has no `<think>` special tokens). Use `chat_template_kwargs={"enable_thinking": false}`.
-- Quality on this harness, thinking off, temp 0: GSM8K flex 81.25% / numeric-norm 91.25%; HumanEval 39/40; IFEval 37/40; NIAH 8/8 @ 262,144.
+- Quality on this harness, thinking off, temp 0: MTP/fp8kv GSM8K flex 81.25% / numeric-norm 91.25% / HumanEval 39/40 / IFEval 37/40 / agentic 17/20. DSpark K7 on the same 200: GSM8K flex 82.5% / numeric-norm 92.5% / HumanEval 39/40 / IFEval 37/40 / agentic 19/20. NIAH 8/8 @ 262,144.
 
 ## Build the runtime yourself (optional)
 

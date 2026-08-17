@@ -1,0 +1,43 @@
+{
+  "run_id": "vllm-dspark-q200",
+  "engine": "vllm",
+  "profile": "adapted Qwen3DSparkModel K=7 + fp8 KV + 32K + 0.70",
+  "thinking": "off",
+  "n": 200,
+  "set_sha256": "ca35650e0bf4c9997772276c15a7116afd553a305b10c88182f52f050b76e066",
+  "elapsed_s": 2606.19,
+  "total_completion_tokens": 75539,
+  "protocol": "client e2e tok/s = completion_tokens / wall (includes prefill)",
+  "scores": {
+    "gsm8k_flex": "66/80 = 82.5%",
+    "gsm8k_numeric_norm": "74/80 = 92.5%",
+    "humaneval": "39/40",
+    "ifeval": "37/40",
+    "agentic_coding": "19/20",
+    "hard_reasoning": "20 written, not auto-graded"
+  },
+  "overall": {
+    "mean_e2e_tok_s": 33.4,
+    "median_e2e_tok_s": 32.88,
+    "token_weighted_tok_s": 28.99,
+    "top_e2e_tok_s": 57.51,
+    "top_id": "humaneval-031"
+  },
+  "families": {
+    "gsm8k": {"n": 80, "flex": 66, "numeric_norm": 74, "mean": 33.23, "median": 32.7, "top": 41.31, "top_id": "gsm8k-010"},
+    "humaneval": {"n": 40, "pass": 39, "mean": 51.34, "median": 52.02, "top": 57.51, "top_id": "humaneval-031"},
+    "ifeval": {"n": 40, "pass": 37, "mean": 15.53, "median": 14.33, "top": 32.87, "top_id": "ifeval-027"},
+    "agentic_coding": {"n": 20, "pass": 19, "mean": 37.69, "median": 37.92, "top": 44.78, "top_id": "agentic-08"},
+    "hard_reasoning": {"n": 20, "pass": null, "mean": 29.64, "median": 29.47, "top": 39.24, "top_id": "hard-04"}
+  },
+  "sibling_sglang_dspark": {
+    "repo": "r0b0tlab/qwen38-27b-nvfp4-sm121-sglang",
+    "file": "quality-200-sglang-dspark.json",
+    "gsm8k_flex": "66/80",
+    "humaneval": "39/40",
+    "ifeval": "37/40",
+    "agentic_coding": "18/20",
+    "mean_e2e_tok_s": 38.09,
+    "top_e2e_tok_s": 66.82
+  }
+}

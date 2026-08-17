@@ -29,6 +29,7 @@ REQUIRED = (
     "scripts/publish_hf.sh",
     "reference/dspark-adapted-config.json",
     "tests/test_adapt_dspark_draft.py",
+    "quality-200-vllm-dspark.json",
 )
 SHARDS = (
     "model-00001-of-00004.safetensors",

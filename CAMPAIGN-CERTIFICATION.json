@@ -53,7 +53,20 @@
         "ifeval": "37/40",
         "agentic": "17/20"
       },
-      "note": "5 of 8 release GSM8K exact-fails are decimal-format artifacts (26.00 vs 26); engine A/B and KV A/B quality-neutral on final checkpoint"
+      "release_dspark_think_off": {
+        "run": "vllm-dspark-q200",
+        "file": "quality-200-vllm-dspark.json",
+        "gsm8k_flex": "66/80 = 82.5%",
+        "gsm8k_numeric": "74/80 = 92.5%",
+        "humaneval": "39/40",
+        "ifeval": "37/40",
+        "agentic": "19/20",
+        "mean_e2e_tok_s": 33.4,
+        "median_e2e_tok_s": 32.88,
+        "top_e2e_tok_s": 57.51,
+        "top_id": "humaneval-031"
+      },
+      "note": "5 of 8 MTP-release GSM8K exact-fails are decimal-format artifacts (26.00 vs 26); DSpark Q200 is a separate think-off pass on the same set sha ca35650e"
     },
     "sanity_suite": "PASS 8/8 (incl qwen3_xml tool-calling, 2.8K long-gen, deterministic)",
     "niah_262144": "PASS 8/8 (5 positions @ ~247.7K actual + ladder 8K/32K/131K; 512 gen past retrieval)",

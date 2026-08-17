@@ -54,13 +54,14 @@ this campaign; upstream-report candidate.
 | GSM8K flex (pre-quant BF16 floor) | 86.2% exact / 96.2% numeric-norm |
 | GSM8K flex (official family control) | 86.2% exact / 93.8% numeric-norm |
 | GSM8K flex (this checkpoint, FP8 KV) | 81.25% exact / 91.25% numeric-norm (5 of 8 fails are "26.00"-style formatting) |
-| HumanEval / IFEval / agentic | 39/40 · 37/40 · 17/20 (release run) |
+| HumanEval / IFEval / agentic | 39/40 · 37/40 · 17/20 (MTP release) · DSpark Q200 39/40 · 37/40 · **19/20** |
 | Sanity suite | 8/8 incl. qwen3_xml tool-calls, 2.8K long-gen, determinism |
 | NIAH @ 262,144 ctx | 8/8 PASS (5 positions @ ~247.7K actual + 8K/32K/131K ladder) |
 | MTP (K*=3) | c1 22.4 tok/s vs AR 11.35 (1.97×); acceptance len 2.5-2.7 |
 | Dedicated c1 (2048 tok) | 27.8-28.1 tok/s median think-off; **29.12** think-on |
 | c8 aggregate | 84.3 tok/s think-off / 84.07 think-on, 17/17 zero-error |
 | DSpark K7 dedicated c1 | 28.46 think-off / 28.65 think-on |
+| DSpark quality-200 e2e | mean 33.4 / median 32.9 / top **57.5** (`humaneval-031`); GSM8K flex 82.5% |
 
 ## Files (complete 4-of-4 tree)
 
