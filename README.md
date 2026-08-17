@@ -137,6 +137,21 @@ DSpark numbers on **this** image / eager / W4A16 target:
 | c8 | **82.89** | 61.53 |
 | thinking-on accept length | — | 3.5 |
 
+Think-on matched `run_perf_suite.sh` (same 512→2048 / 1024→256 protocol,
+`chat_template_kwargs.enable_thinking=true`):
+
+| | dedicated c1 med | ladder best c1 / c2 / c4 / c8 |
+|---|---:|---|
+| vLLM MTP K3 think-off | 27.83 | 19.24 / 32.00 / 34.61 / 82.89 |
+| vLLM MTP K3 think-on | **29.12** | 22.57 / 37.46 / 60.22 / 84.07 |
+| vLLM DSpark K7 think-off | 28.46 | 16.05 / 28.47 / 43.88 / 61.53 |
+| vLLM DSpark K7 think-on | 28.65 | 16.13 / 28.63 / 44.63 / 62.23 |
+
+SGLang native path (same checkpoint, official cookbook image):
+[`r0b0tlab/qwen38-27b-nvfp4-sm121-sglang`](https://github.com/r0b0tlab/qwen38-27b-nvfp4-sm121-sglang).
+SGLang EAGLE think-off wins the concurrent ladder (c8 **123.90**). vLLM MTP
+think-on wins dedicated c1 (**29.12**).
+
 ## Quant / serve facts that matter
 
 - Recipe: ModelOpt 0.46.0rc1 shipped `qwen3_5` map — 193 W4A16_NVFP4 + 208 FP8 + 257 BF16 + 15 BF16 MTP tensors.

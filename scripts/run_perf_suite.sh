@@ -16,11 +16,21 @@ REPS="${REPS:-3}"
 INPUT_LEN="${INPUT_LEN:-1024}"
 OUTPUT_LEN="${OUTPUT_LEN:-256}"
 C1_TOKENS="${C1_TOKENS:-2048}"
+EXTRA_BODY_FILE="${EXTRA_BODY_FILE:-}"
+if [[ -n "${EXTRA_BODY_FILE}" ]]; then
+  EXTRA_JSON="$(cat "$EXTRA_BODY_FILE")"
+else
+  EXTRA_JSON='{"chat_template_kwargs":{"enable_thinking":false}}'
+fi
+python3 -c 'import json,sys; json.loads(sys.argv[1])' "$EXTRA_JSON"
+printf '%s' "$EXTRA_JSON" > "$OUT/extra_request_body.json"
+docker cp "$OUT/extra_request_body.json" "$CONTAINER:/tmp/extra_request_body.json"
 
 {
   echo "run_id=$RUN_ID"
   echo "container=$CONTAINER port=$PORT model=$MODEL"
   echo "levels=$LEVELS reps=$REPS input=$INPUT_LEN output=$OUTPUT_LEN c1_tokens=$C1_TOKENS"
+  echo "extra_request_body=$EXTRA_JSON"
   date -u -Is
   curl -fsS "http://127.0.0.1:$PORT/v1/models"
 } | tee "$OUT/preflight.txt"
@@ -58,10 +68,11 @@ for rep in 1 2 3 4 5; do
     --request-rate inf \
     --seed 0 --ignore-eos --temperature 0 \
     --percentile-metrics ttft,tpot,itl,e2el \
+    --extra-body "$EXTRA_JSON" \
     --save-result --result-dir /tmp \
-    --result-filename "qwen38-dedicated-c1-r${rep}.json" \
+    --result-filename "${RUN_ID}-qwen38-dedicated-c1-r${rep}.json" \
     >"$OUT/dedicated-c1-r${rep}.log" 2>&1 || { echo "C1_R${rep}_FAIL" | tee -a "$OUT/progress.log"; exit 2; }
-  fetch_result "qwen38-dedicated-c1-r${rep}.json"
+  fetch_result "${RUN_ID}-qwen38-dedicated-c1-r${rep}.json"
 done
 
 # --- concurrent ladder ---
@@ -83,10 +94,11 @@ for c in $LEVELS; do
       --request-rate inf \
       --seed 0 --ignore-eos --temperature 0 \
       --percentile-metrics ttft,tpot,itl,e2el \
+      --extra-body "$EXTRA_JSON" \
       --save-result --result-dir /tmp \
-      --result-filename "qwen38-c${c}-r${rep}.json" \
+      --result-filename "${RUN_ID}-qwen38-c${c}-r${rep}.json" \
       >"$OUT/c${c}-r${rep}.log" 2>&1 || { echo "C${c}_R${rep}_FAIL" | tee -a "$OUT/progress.log"; exit 2; }
-    fetch_result "qwen38-c${c}-r${rep}.json"
+    fetch_result "${RUN_ID}-qwen38-c${c}-r${rep}.json"
   done
 done
 echo "SUITE_DONE $RUN_ID" | tee -a "$OUT/progress.log"

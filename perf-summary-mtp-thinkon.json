@@ -1,0 +1,10 @@
+{
+  "profile": "vLLM MTP K=3 + fp8 KV + 32K + 0.70",
+  "thinking": "on",
+  "protocol": "repo/scripts/run_perf_suite.sh + extra-body enable_thinking=true",
+  "dedicated_c1_median_tok_s": 29.12,
+  "dedicated_c1_reps": [25.92, 29.10, 29.12, 29.13, 29.15],
+  "ladder_best": {"c1": 22.57, "c2": 37.46, "c4": 60.22, "c8": 84.07},
+  "zero_errors": true,
+  "runs": 17
+}

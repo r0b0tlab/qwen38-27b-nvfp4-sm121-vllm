@@ -58,8 +58,9 @@ this campaign; upstream-report candidate.
 | Sanity suite | 8/8 incl. qwen3_xml tool-calls, 2.8K long-gen, determinism |
 | NIAH @ 262,144 ctx | 8/8 PASS (5 positions @ ~247.7K actual + 8K/32K/131K ladder) |
 | MTP (K*=3) | c1 22.4 tok/s vs AR 11.35 (1.97×); acceptance len 2.5-2.7 |
-| Dedicated c1 (2048 tok) | 27.8-28.1 tok/s median (2.45-2.48× AR) |
-| c8 aggregate | 84.3 tok/s best, 17/17 zero-error |
+| Dedicated c1 (2048 tok) | 27.8-28.1 tok/s median think-off; **29.12** think-on |
+| c8 aggregate | 84.3 tok/s think-off / 84.07 think-on, 17/17 zero-error |
+| DSpark K7 dedicated c1 | 28.46 think-off / 28.65 think-on |
 
 ## Files (complete 4-of-4 tree)
 

@@ -1,0 +1,10 @@
+{
+  "profile": "vLLM DSpark K=7 + adapted Qwen3DSparkModel + fp8 KV + 32K + 0.70",
+  "thinking": "on",
+  "protocol": "repo/scripts/run_perf_suite.sh + extra-body enable_thinking=true",
+  "dedicated_c1_median_tok_s": 28.65,
+  "dedicated_c1_reps": [28.47, 28.64, 28.65, 28.66, 28.66],
+  "ladder_best": {"c1": 16.13, "c2": 28.63, "c4": 44.63, "c8": 62.23},
+  "zero_errors": true,
+  "runs": 17
+}
