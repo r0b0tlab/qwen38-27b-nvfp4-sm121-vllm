@@ -166,8 +166,10 @@ wins agentic 19/20 vs 18/20.
 
 SGLang native path (same checkpoint, official cookbook image):
 [`r0b0tlab/qwen38-27b-nvfp4-sm121-sglang`](https://github.com/r0b0tlab/qwen38-27b-nvfp4-sm121-sglang).
-SGLang EAGLE think-off wins the concurrent ladder (c8 **123.90**). vLLM MTP
-think-on wins dedicated c1 (**29.12**).
+SGLang's current production profile there is **DFlash2 K8** (z-lab draft):
+dedicated c1 **28.38**, r0b0bench core-subset 11/11 PASS with full-262144
+NIAH 3/3. SGLang EAGLE think-off still wins the concurrent ladder
+(c8 **123.90**). vLLM MTP think-on wins dedicated c1 (**29.12**).
 
 ## Quant / serve facts that matter
 
