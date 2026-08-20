@@ -27,7 +27,12 @@ until all four files below exist and match `final-sota-shards.sha256`.
 Do **not** point the server at a sibling NVFP4 tree and then mount only shard 4.
 That changes the kernel path and is not this release.
 
-## Fastest path (MTP, the published production profile)
+## Quickstart (MTP — no extra downloads)
+
+MTP is the quickest way to a working server: the MTP head is already inside
+the checkpoint and the profile runs on the published image with no extra
+downloads. It is not the fastest profile at every concurrency point — see
+[Which profile should I run?](#which-profile-should-i-run).
 
 ```bash
 huggingface-cli download r0b0tlab/Qwen3.8-27B-NVFP4-MTP-sm121 \
@@ -53,6 +58,24 @@ One-liner that downloads, launches MTP, and runs the canary:
 ```bash
 bash scripts/click_run_mtp.sh
 ```
+
+## Which profile should I run?
+
+There is no single fastest profile — it depends on where you sit on the
+concurrency curve:
+
+- **≥c8 batch throughput** → `mtp` (c8 82.89 tok/s, best dedicated c1 27.8;
+  also the best dedicated c1 with thinking on: 29.12)
+- **c1–c6 latency / mixed concurrency, and full-262K NIAH** → `dflash2`
+  (r0b0bench ladder c1 67.1 / c2 121.5 / c4 211.5 / c6 279.2 agg tok/s;
+  NIAH 3/3 @ 262,144; needs the overlay image + 3.6 GB z-lab draft)
+- **c1–c4 with thinking on** → `dspark` (c4 43.88, thinking-on accept 3.5;
+  needs the adapted draft)
+- **Baseline / no speculation** → `ar` (11.35 c1)
+
+Note the two measurement methodologies and never mix them: dedicated-c1 /
+ladder figures come from `run_perf_suite.sh`; the c1/c2/c4/c6 ladder in the
+DFlash2 table is r0b0bench aggregate client throughput.
 
 ## Why stock `vllm-nightly` is ~27% slower
 
@@ -84,7 +107,7 @@ Use the GHCR image. Do not expect the 2.45× number from an untuned nightly.
 
 | Profile | Extra flags | Use |
 |---|---|---|
-| `mtp` (default) | MTP K=3 + `qwen3_xml` tools | production / ≥c8 throughput |
+| `mtp` (default) | MTP K=3 + `qwen3_xml` tools | ≥c8 throughput; quickest on-ramp (no extra downloads) |
 | `ar` | no spec | baseline |
 | `dspark` | external draft, K=7 | c1–c4 latency / thinking-on |
 | `dflash2` | external z-lab draft, K=8, V2 runner, autotune/JIT/CuteDSL warmup off, overlay image | strongest low–mid concurrency + full-262K NIAH (see below) |
