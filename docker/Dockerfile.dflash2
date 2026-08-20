@@ -1,0 +1,29 @@
+# DFlash2 overlay on the published Qwen3.8-27B NVFP4 SM121 vLLM image.
+# Base: ghcr.io/r0b0tlab/qwen38-27b-nvfp4-sm121:v0.27.2rc0-sm121
+#       (vLLM 0.27.2rc0 SM121 wheel @ 7f7a32c, FP4 GEMM tune intact)
+# Overlay: surgical DFlash2 hunks from vllm-project/vllm#52816 @ 19c93519
+#          plus r0b0tlab quantized-lm_head selector path.
+# No CUDA rebuild. MTP/DSpark/AR profiles stay on the same wheel.
+FROM ghcr.io/r0b0tlab/qwen38-27b-nvfp4-sm121:v0.27.2rc0-sm121
+
+COPY overlay/vllm/config/vllm.py \
+     /usr/local/lib/python3.12/dist-packages/vllm/config/vllm.py
+COPY overlay/vllm/model_executor/models/registry.py \
+     /usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/registry.py
+COPY overlay/vllm/model_executor/models/qwen3_dflash.py \
+     /usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/qwen3_dflash.py
+COPY overlay/vllm/model_executor/models/qwen3_dflash2.py \
+     /usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/qwen3_dflash2.py
+COPY overlay/vllm/v1/worker/gpu/spec_decode/__init__.py \
+     /usr/local/lib/python3.12/dist-packages/vllm/v1/worker/gpu/spec_decode/__init__.py
+COPY overlay/vllm/v1/worker/gpu/spec_decode/dflash2/ \
+     /usr/local/lib/python3.12/dist-packages/vllm/v1/worker/gpu/spec_decode/dflash2/
+COPY audit_dflash2_image.py /opt/audit_dflash2_image.py
+RUN python3 /opt/audit_dflash2_image.py
+
+LABEL org.opencontainers.image.title="qwen38-27b-vllm-dflash2-sm121" \
+      org.opencontainers.image.description="Published v0.27.2rc0-sm121 + DFlash2 PR 52816 overlay" \
+      io.r0b0tlab.base-image="v0.27.2rc0-sm121" \
+      io.r0b0tlab.base-id="sha256:3dd1f94eecd218445ae7a1e6626452725a7e7d39d08450aa134eb6805a5c115d" \
+      io.r0b0tlab.dflash2-pr="vllm-project/vllm#52816" \
+      io.r0b0tlab.dflash2-commit="19c9351904df4c63042671bc67a866ca48dc7d6f"

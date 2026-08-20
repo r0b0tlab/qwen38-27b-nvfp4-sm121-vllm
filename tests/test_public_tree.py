@@ -24,6 +24,7 @@ REQUIRED = (
     "docker/Dockerfile.rc0",
     "scripts/serve.sh",
     "scripts/click_run_mtp.sh",
+    "scripts/click_run_dflash2.sh",
     "scripts/adapt_dspark_draft.py",
     "scripts/run_semantic_gate.py",
     "scripts/publish_hf.sh",
@@ -83,9 +84,9 @@ def test_readme_documents_click_run_and_gaps() -> None:
         assert needle in text, needle
 
 
-def test_serve_script_covers_four_profiles() -> None:
+def test_serve_script_covers_five_profiles() -> None:
     text = (ROOT / "scripts/serve.sh").read_text()
-    for needle in ("ar)", "mtp)", "dspark)", "long)", "Qwen3DSparkModel", "num_speculative_tokens\":3"):
+    for needle in ("ar)", "mtp)", "dspark)", "dflash2)", "long)", "Qwen3DSparkModel", "DFlash2DraftModel", 'num_speculative_tokens":3'):
         assert needle in text, needle
 
 
@@ -104,6 +105,7 @@ def test_shell_scripts_parse() -> None:
     scripts = [
         ROOT / "scripts/serve.sh",
         ROOT / "scripts/click_run_mtp.sh",
+        ROOT / "scripts/click_run_dflash2.sh",
         ROOT / "scripts/publish_hf.sh",
         ROOT / "scripts/assemble_rc0.sh",
         ROOT / "scripts/run_mtp_ladder.sh",
