@@ -3,7 +3,7 @@
 set -euo pipefail
 CKPT="${CKPT:-$HOME/models/r0b0tlab/Qwen3.8-27B-NVFP4-MTP-sm121}"
 DRAFT="${DRAFT:-$HOME/models/z-lab/Qwen3.8-27B-DFlash2}"
-IMAGE="${IMAGE:-qwen38-27b-vllm-dflash2-sm121:0.1.0}"
+IMAGE="${IMAGE:-qwen38-27b-vllm-dflash2-sm121:0.1.1}"
 mkdir -p "$(dirname "$CKPT")" "$(dirname "$DRAFT")"
 if [ ! -f "$CKPT/model-00001-of-00004.safetensors" ]; then
   huggingface-cli download r0b0tlab/Qwen3.8-27B-NVFP4-MTP-sm121 --local-dir "$CKPT"

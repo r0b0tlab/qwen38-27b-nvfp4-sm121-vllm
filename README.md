@@ -11,6 +11,7 @@ the exact serve flags that produced the numbers below.
 | Checkpoint (all **four** shards) | [`r0b0tlab/Qwen3.8-27B-NVFP4-MTP-sm121`](https://huggingface.co/r0b0tlab/Qwen3.8-27B-NVFP4-MTP-sm121) |
 | Runtime image | `ghcr.io/r0b0tlab/qwen38-27b-nvfp4-sm121:v0.27.2rc0-sm121` |
 | Optional DSpark draft | [`RadixArk/Qwen3.8-27B-DSpark`](https://huggingface.co/RadixArk/Qwen3.8-27B-DSpark) + `scripts/adapt_dspark_draft.py` |
+| Optional DFlash2 draft (K=8) | [`z-lab/Qwen3.8-27B-DFlash2`](https://huggingface.co/z-lab/Qwen3.8-27B-DFlash2) + overlay image from `docker/Dockerfile.dflash2` |
 
 If your HF tree only has `model-00004-of-00004.safetensors`, it is incomplete.
 That was a publication bug (hardlinked body shards were omitted). Re-pull
@@ -86,14 +87,85 @@ Use the GHCR image. Do not expect the 2.45× number from an untuned nightly.
 | `mtp` (default) | MTP K=3 + `qwen3_xml` tools | production / ≥c8 throughput |
 | `ar` | no spec | baseline |
 | `dspark` | external draft, K=7 | c1–c4 latency / thinking-on |
-| `long` | `--max-model-len 262144 --gpu-memory-utilization 0.85 --max-num-batched-tokens 8192` | NIAH / 262K |
+| `dflash2` | external z-lab draft, K=8, V2 runner, autotune/JIT/CuteDSL warmup off, overlay image | strongest low–mid concurrency + full-262K NIAH (see below) |
+| `long` | `--max-model-len 262144 --gpu-memory-utilization 0.85 --max-num-batched-tokens 8192` | NIAH / 262K (no spec) |
 
 ```bash
 MODEL_DIR=~/models/r0b0tlab/Qwen3.8-27B-NVFP4-MTP-sm121 bash scripts/serve.sh ar
 MODEL_DIR=... bash scripts/serve.sh mtp
 DRAFT_DIR=~/models/r0b0tlab/Qwen3.8-27B-DSpark-adapted MODEL_DIR=... bash scripts/serve.sh dspark
+DRAFT_DIR=~/models/z-lab/Qwen3.8-27B-DFlash2 MODEL_DIR=... IMAGE=qwen38-27b-vllm-dflash2-sm121:0.1.1 bash scripts/serve.sh dflash2
 MODEL_DIR=... bash scripts/serve.sh long
 ```
+
+# DFlash2 speculative decoding (K=8)
+
+DFlash2 is the strongest spec path on this engine at low–mid concurrency.
+It is **not** in the published wheel — serve it with the overlay image built
+from this repo (`docker/Dockerfile.dflash2`). The overlay layers surgical
+hunks from [vllm-project/vllm#52816](https://github.com/vllm-project/vllm/pull/52816)
+@ `19c93519` onto the published `v0.27.2rc0-sm121` wheel (no wheel rebuild,
+FP4 GEMM tune intact) plus four SM121 fixes the stock PR needs here:
+
+1. **Quantized target LM head** — the stock PR rejects any
+   non-`UnquantizedEmbeddingMethod` head; our target ships `W4A16_NVFP4`
+   on `lm_head`. The overlay routes through `lm_head.quant_method.apply`
+   (the same path `LogitsProcessor` uses). tp=1 only.
+2. **V2 runner force** — `Qwen3_5ForConditionalGeneration` is not a
+   default-V2 architecture; without the force, DFlash2 silently drafts as
+   DFlash1 and the candidate selector never runs.
+3. **Warmup is not the product path on SM121** — flashinfer autotune's
+   dummy metadata is not the DFlash `1+K` query layout, and the
+   memory-profile dummy run faults the selector GEMM
+   (`CUBLAS_STATUS_INTERNAL_ERROR`). The dflash2 profile serves with
+   `--no-enable-flashinfer-autotune` and jit/cutedsl warmup off, and the
+   speculator skips the selector when `attn_metadata is None`.
+4. **Selector-walk index clamps** — the DFlash2 selector-walk Triton kernel
+   uses `BLOCK_K` (next power of two ≥ `selector_top_k`) as the
+   losing-lane sentinel. All-masked / NaN score rows make every lane lose,
+   `index == BLOCK_K`, and the kernel loads one past the candidate row.
+   The garbage draft ids then hit the target `embed_tokens`, which at tp=1
+   does not mask out-of-range ids — a CUDA device-side assert
+   (`vectorized_gather_kernel`) minutes into any concurrent mixed
+   tool-call batch (BFCL at C≥2). The overlay clamps the walk index to
+   `top_k - 1`, NaN-sanitizes + clamps the lm-head top-k ids, and clamps
+   candidate ids before the codebook gather. Verified: official BFCL-MT at
+   4 threads ran 8h36 with zero device asserts (previously died in ~6 min).
+
+The draft is the z-lab release; `is_causal: false` wins over the SWA
+layer-type default (non-causal FlashInfer for the draft).
+
+```bash
+# draft (3.6 GB)
+huggingface-cli download z-lab/Qwen3.8-27B-DFlash2 \
+  --local-dir ~/models/z-lab/Qwen3.8-27B-DFlash2
+
+# build the overlay image (takes ~30 s; base is the published GHCR image)
+docker build -f docker/Dockerfile.dflash2 -t qwen38-27b-vllm-dflash2-sm121:0.1.1 docker/
+
+DRAFT_DIR=~/models/z-lab/Qwen3.8-27B-DFlash2 \
+MODEL_DIR=~/models/r0b0tlab/Qwen3.8-27B-NVFP4-MTP-sm121 \
+IMAGE=qwen38-27b-vllm-dflash2-sm121:0.1.1 \
+  bash scripts/serve.sh dflash2
+```
+
+One-liner that downloads both trees, builds the overlay, launches, and
+gates: `bash scripts/click_run_dflash2.sh`.
+
+DFlash2 K8 vs the other profiles (same 1×GB10, r0b0bench core-subset,
+think-off; vLLM rows from the overlay image `0.1.1`):
+
+| | GSM8K | HE@1 | QA | IFEval | BFCL-MT | ASTµ | NIAH (262K) | c1 / c2 / c4 / c6 agg tok/s | TTFT ms |
+|---|---:|---:|---:|---:|---:|---:|---|---|---:|
+| vLLM **DFlash2 K8** | 0.870 | 0.890 | 0.963 | 0.825 | 0.565 | 0.270 | PASS 3/3 | 67.1 / 121.5 / 211.5 / 279.2 | 259.1 |
+| SGLang DFlash2 K8 (sibling repo) | 0.865 | 0.872 | 0.963 | 0.820 | 0.690 | 0.273 | PASS 3/3 | 68.6 / 124.3 / 212.0 / 276.4 | 214.6 |
+
+NIAH depths 65,472 / 130,944 / 235,699, all `finish=stop`. vLLM prefill in
+its row is an e2e wall proxy (~826 tok/s for 22.7k-prompt requests), not
+the pure-prefill `run_perf_suite` methodology behind SGLang's 22,663 —
+do not compare those two numbers. IFEval is the lightweight constraint
+scorer. Ledger: `r0b0bench` entry
+`qwen38-27b-nvfp4-vllm-dflash2-k8-core-subset-20260820`.
 
 ## DSpark that actually returns tokens
 
@@ -168,7 +240,9 @@ SGLang native path (same checkpoint, official cookbook image):
 [`r0b0tlab/qwen38-27b-nvfp4-sm121-sglang`](https://github.com/r0b0tlab/qwen38-27b-nvfp4-sm121-sglang).
 SGLang's current production profile there is **DFlash2 K8** (z-lab draft):
 dedicated c1 **28.38**, r0b0bench core-subset 11/11 PASS with full-262144
-NIAH 3/3. SGLang EAGLE think-off still wins the concurrent ladder
+NIAH 3/3. **This repo now serves DFlash2 K8 too** (overlay image, section
+above) — quality parity within noise on GSM8K/QA/AST/NIAH, concurrency
+ladder within ~3%. SGLang EAGLE think-off still wins the concurrent ladder
 (c8 **123.90**). vLLM MTP think-on wins dedicated c1 (**29.12**).
 
 ## Quant / serve facts that matter
@@ -177,7 +251,7 @@ NIAH 3/3. SGLang EAGLE think-off still wins the concurrent ladder
 - Serve **must** keep `--kv-cache-dtype fp8`. The checkpoint ships `kv_cache_quant_algo: "FP8"`. Flag-less + runtime fp8 = `19×23 → 417`.
 - No prefix cache on this hybrid GDN family.
 - No `--reasoning-parser qwen3` (this family has no `<think>` special tokens). Use `chat_template_kwargs={"enable_thinking": false}`.
-- Quality on this harness, thinking off, temp 0: MTP/fp8kv GSM8K flex 81.25% / numeric-norm 91.25% / HumanEval 39/40 / IFEval 37/40 / agentic 17/20. DSpark K7 on the same 200: GSM8K flex 82.5% / numeric-norm 92.5% / HumanEval 39/40 / IFEval 37/40 / agentic 19/20. NIAH 8/8 @ 262,144.
+- Quality on this harness, thinking off, temp 0: MTP/fp8kv GSM8K flex 81.25% / numeric-norm 91.25% / HumanEval 39/40 / IFEval 37/40 / agentic 17/20. DSpark K7 on the same 200: GSM8K flex 82.5% / numeric-norm 92.5% / HumanEval 39/40 / IFEval 37/40 / agentic 19/20. NIAH 8/8 @ 262,144. DFlash2 K8 (overlay 0.1.1) r0b0bench core-subset 11/11: GSM8K 0.870 / HE 0.890 / QA 0.9625 / IFEval 0.825 / NIAH 3/3 @ 262,144.
 
 ## Build the runtime yourself (optional)
 
